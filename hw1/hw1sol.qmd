@@ -64,12 +64,20 @@ Refer to the documentation <https://physionet.org/content/mimiciv/2.2/> for deta
 
 2. Display the contents in the folders `hosp` and `icu` using Bash command `ls -l`. Why are these data files distributed as `.csv.gz` files instead of `.csv` (comma separated values) files? Read the page <https://mimic.mit.edu/docs/iv/> to understand what's in each folder.
 
-**Answer:** The data files are distributed as `.csv.gz` files instead of `.csv` files because the `.csv.gz` files are compressed and take up less storage space. These compressed files can be transferred more quickly over networks and are easier to manage when it comes to storage and backup processes. The `.csv.gz` files are compressed using the `gzip` command. The following bash command displays the contents in the folders `hosp` and `icu`. The `hosp` folder contains all data acquired from the hospital wide electronic health record. Information covered includes patient and admission information, laboratory measurements, microbiology, medication administration, and billed diagnoses. The `icu` folder contains information collected from the clinical information system used within the ICU. Documented data includes intravenous administrations, ventilator settings, and other charted items.
+**Answer:** The data files are distributed as `.csv.gz` files instead of `.csv` files because the `.csv.gz` files are compressed and take up less storage space. These compressed files can be transferred more quickly over networks and are easier to manage when it comes to storage and backup processes. The `.csv.gz` files are compressed using the `gzip` command. 
+
+The following bash command displays the contents in the folders `hosp` and `icu`. 
+The `hosp` folder contains all data acquired from the hospital wide electronic health record. Information covered includes patient and admission information, laboratory measurements, microbiology, medication administration, and billed diagnoses. 
 ```{bash}
 #| eval: true
 ls -l ~/mimic/hosp/
+```
+The `icu` folder contains information collected from the clinical information system used within the ICU. Documented data includes intravenous administrations, ventilator settings, and other charted items.
+```{bash}
+#| eval: true
 ls -l ~/mimic/icu/
 ```
+
 3. Briefly describe what Bash commands `zcat`, `zless`, `zmore`, and `zgrep` do.
 
 **Answer:** The `zcat` command is used to display the contents of a compressed file without decompressing them. The `zless` command is used to display the contents of a compressed file one screen at a time. The `zmore` command is used to display the contents of a compressed file page by page. The `zgrep` command is used to search for a specified pattern in a compressed file.
@@ -216,7 +224,6 @@ Explain the output. Explain the meaning of `"$1"`, `"$2"`, and `"$3"` in this sh
 
 Try following commands in Bash and interpret the results: `cal`, `cal 2024`, `cal 9 1752` (anything unusual?), `date`, `hostname`, `arch`, `uname -a`, `uptime`, `who am i`, `who`, `w`, `id`, `last | head`, `echo {con,pre}{sent,fer}{s,ed}`, `time sleep 5`, `history | tail`.
 
-**Answer:**  The `date` command displays the current date and time. The `hostname` command displays the name of the current host system. The `arch` command displays the machine hardware name. The `uname -a` command displays the operating system name. The `uptime` command displays the current time, how long the system has been running, how many users are currently logged on, and the system load averages for the past 1, 5, and 15 minutes. The `who am i` command displays the current user's login name and terminal line. The `who` command displays the current users logged on. The `w` command displays the current users logged on and what they are doing. The `id` command displays the current user's user and group IDs. The `last | head` command displays the last 10 users logged on. The `echo {con,pre}{sent,fer}{s,ed}` command displays the strings "consents", "confer", "consented", "conferred", "presents", "prefer", "presented", and "preferred". The `time sleep 5` command displays the time it takes to run the command `sleep 5`, which is 5 seconds. The `history | tail` command displays the last 10 commands that were run.
 ```{bash}
 #| eval: true
 cal

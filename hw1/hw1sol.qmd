@@ -91,6 +91,7 @@ Display the number of lines in each data file using a similar loop. (Hint: combi
 #| eval: true
 for datafile in ~/mimic/hosp/{a,l,pa}*.gz
 do
+  echo $datafile
   zcat < $datafile | wc -l
 done
 ```
@@ -160,15 +161,18 @@ rm labevents.csv
 wget -nc http://www.gutenberg.org/cache/epub/42671/pg42671.txt
 ```
 Explain what `wget -nc` does. Do **not** put this text file `pg42671.txt` in Git. Complete the following loop to tabulate the number of times each of the four characters is mentioned using Linux commands.
+
+**Answer:** `wget -nc` downloads the file from the URL if it does not exist in the current directory. If the file already exists in the current directory, `wget -nc` does not download the file from the URL and will show that "File already there; not retrieving".
 ```{bash}
-#| eval: false
+#| eval: true
 wget -nc http://www.gutenberg.org/cache/epub/42671/pg42671.txt
 for char in Elizabeth Jane Lydia Darcy
 do
   echo $char:
-  # some bash commands here
+  grep -o -i $char pg42671.txt | wc -l
 done
 ```
+**Answer:** Elizabeth is mentioned 634 times, Jane is mentioned 293 times, Lydia is mentioned 171 times, and Darcy is mentioned 418 times. Therefore, Elizabeth is the most mentioned character in the book.
 
 2. What's the difference between the following two commands?
 ```{bash}
@@ -180,6 +184,7 @@ and
 #| eval: false
 echo 'hello, world' >> test2.txt
 ```
+**Answer:** The first command `echo 'hello, world' > test1.txt` writes the string "hello, world" to the file `test1.txt`. If the file `test1.txt` already exists, the first command will overwrite the file `test1.txt`. The second command `echo 'hello, world' >> test2.txt` appends the string "hello, world" to the file `test2.txt`. If the file `test2.txt` already exists, the second command will append the string "hello, world" to the end of the file `test2.txt` without overwriting its existing content.
 
 3. Using your favorite text editor (e.g., `vi`), type the following and save the file as `middle.sh`:
 ```{bash eval=FALSE}
@@ -188,12 +193,19 @@ echo 'hello, world' >> test2.txt
 # Usage: bash middle.sh filename end_line num_lines
 head -n "$2" "$1" | tail -n "$3"
 ```
+
+```{bash}
+#| eval: true
+chmod u+x ./middle.sh
+```
 Using `chmod` to make the file executable by the owner, and run
 ```{bash}
-#| eval: false
+#| eval: true
 ./middle.sh pg42671.txt 20 5
 ```
 Explain the output. Explain the meaning of `"$1"`, `"$2"`, and `"$3"` in this shell script. Why do we need the first line of the shell script?
+
+**Answer:** The output of `./middle.sh pg42671.txt 20 5` is the 5 lines from line 16 to line 20 of the file `pg42671.txt`. `"$1"` is the first argument of the shell script, which is the file name `pg42671.txt`. `"$2"` is the second argument of the shell script, which is the end line number `20`. `"$3"` is the third argument of the shell script, which is the number of lines `5`. We need the first line of the shell script `#!/bin/sh` to tell the shell which interpreter to use to run the shell script.
 
 ## Q5. More fun with Linux
 

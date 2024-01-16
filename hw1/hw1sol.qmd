@@ -144,8 +144,13 @@ du -h labevents.csv
 ```{bash}
 #| eval: true
 time zcat < ~/mimic/hosp/labevents.csv.gz | wc -l
+```
+
+```{bash}
+#| eval: true
 time wc -l labevents.csv
 ```
+
 **Answer:** The trade off between storage and speed for big data files is that compressed files take up less storage space but take longer to run. Uncompressed files take up more storage space but take less time to run.
 
 **Answer:** Finally, delete the large `labevents.csv` file.

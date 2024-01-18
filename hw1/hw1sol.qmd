@@ -143,19 +143,19 @@ zcat < ~/mimic/hosp/admissions.csv.gz | awk -F, '{print $13}' | sort | uniq | se
 
 **Answer:** The following bash script compares compressed gz file size to the uncompressed file size. The compressed gz file size is 1.8G. The uncompressed file size is 13G, which is much larger than the compressed gz file size.
 ```{bash}
-#| eval: true
+#| eval: false
 gzip -dk < ~/mimic/hosp/labevents.csv.gz > ./labevents.csv
 du -h ~/mimic/hosp/labevents.csv.gz
 du -h labevents.csv 
 ```
-**Answer:** The following bash script compares the run times of `zcat < ~/mimic/labevents.csv.gz | wc -l` versus `wc -l labevents.csv`. The run time of `zcat < ~/mimic/labevents.csv.gz | wc -l` is around 14.3s. The run time of `wc -l labevents.csv` is around 15.9s. 
+**Answer:** The following bash script compares the run times of `zcat < ~/mimic/labevents.csv.gz | wc -l` versus `wc -l labevents.csv`. The run time of `zcat < ~/mimic/labevents.csv.gz | wc -l` is around 13.914s. The run time of `wc -l labevents.csv` is around 15.861s. 
 ```{bash}
-#| eval: true
+#| eval: false
 time zcat < ~/mimic/hosp/labevents.csv.gz | wc -l
 ```
 
 ```{bash}
-#| eval: true
+#| eval: false
 time wc -l labevents.csv
 ```
 
@@ -163,7 +163,7 @@ time wc -l labevents.csv
 
 **Answer:** Finally, delete the large `labevents.csv` file.
 ```{bash}
-#| eval: true
+#| eval: false
 rm labevents.csv
 ```
 ## Q4. Who's popular in Price and Prejudice

@@ -105,7 +105,7 @@ done
 ```
 5. Display the first few lines of `admissions.csv.gz`. How many rows are in this data file? How many unique patients (identified by `subject_id`) are in this data file? Do they match the number of patients listed in the `patients.csv.gz` file? (Hint: combine Linux commands `zcat <`, `head`/`tail`, `awk`, `sort`, `uniq`, `wc`, and so on.)
 
-**Answer:** The following bash script displays the first few lines of `admissions.csv.gz`. There are 431232 rows in this data file. There are 180733 unique patients in this data file. It does not match the number of patients listed in the `patients.csv.gz` file, 299713.
+**Answer:** The following bash script displays the first few lines of `admissions.csv.gz`. There are 431232 rows in this data file. There are 180733 unique patients in this data file. It does not match the number of patients listed in the `patients.csv.gz` file, 299712.
 ```{bash}
 #| eval: true
 zcat < ~/mimic/hosp/admissions.csv.gz | head -5
@@ -148,7 +148,7 @@ gzip -dk < ~/mimic/hosp/labevents.csv.gz > ./labevents.csv
 du -h ~/mimic/hosp/labevents.csv.gz
 du -h labevents.csv 
 ```
-**Answer:** The following bash script compares the run times of `zcat < ~/mimic/labevents.csv.gz | wc -l` versus `wc -l labevents.csv`. The run time of `zcat < ~/mimic/labevents.csv.gz | wc -l` is 14.268s. The run time of `wc -l labevents.csv` is 15.972s. 
+**Answer:** The following bash script compares the run times of `zcat < ~/mimic/labevents.csv.gz | wc -l` versus `wc -l labevents.csv`. The run time of `zcat < ~/mimic/labevents.csv.gz | wc -l` is around 14.3s. The run time of `wc -l labevents.csv` is around 15.9s. 
 ```{bash}
 #| eval: true
 time zcat < ~/mimic/hosp/labevents.csv.gz | wc -l
@@ -159,7 +159,7 @@ time zcat < ~/mimic/hosp/labevents.csv.gz | wc -l
 time wc -l labevents.csv
 ```
 
-**Answer:** The trade off between storage and speed for big data files is that compressed files take up less storage space but take longer to run. Uncompressed files take up more storage space but take less time to run.
+**Answer:** In theory, the trade off between storage and speed for big data files is that compressed files take up less storage space but take longer to run. Uncompressed files take up more storage space but take less time to run. However, in last question, the run time of `zcat < ~/mimic/labevents.csv.gz | wc -l` is shorter than the run time of `wc -l labevents.csv`. 
 
 **Answer:** Finally, delete the large `labevents.csv` file.
 ```{bash}

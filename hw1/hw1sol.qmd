@@ -80,7 +80,11 @@ ls -l ~/mimic/icu/
 
 3. Briefly describe what Bash commands `zcat`, `zless`, `zmore`, and `zgrep` do.
 
-**Answer:** The `zcat` command is used to display the contents of a compressed file without decompressing them. The `zless` command is used to display the contents of a compressed file one screen at a time. The `zmore` command is used to display the contents of a compressed file page by page. The `zgrep` command is used to search for a specified pattern in a compressed file.
+**Answer:**  
+The `zcat` command is used to display the contents of a compressed file without decompressing them.  
+The `zless` command is used to display the contents of a compressed file one screen at a time.   
+The `zmore` command is used to display the contents of a compressed file page by page.  
+The `zgrep` command is used to search for a specified pattern in a compressed file.
 
 4. (Looping in Bash) What's the output of the following bash script?
 ```{bash}
@@ -105,38 +109,41 @@ done
 ```
 5. Display the first few lines of `admissions.csv.gz`. How many rows are in this data file? How many unique patients (identified by `subject_id`) are in this data file? Do they match the number of patients listed in the `patients.csv.gz` file? (Hint: combine Linux commands `zcat <`, `head`/`tail`, `awk`, `sort`, `uniq`, `wc`, and so on.)
 
-**Answer:** The following bash script displays the first few lines of `admissions.csv.gz`. There are 431232 rows in this data file. There are 180733 unique patients in this data file. It does not match the number of patients listed in the `patients.csv.gz` file, 299712.
+**Answer:** The following bash script displays the first five lines of `admissions.csv.gz`. There are 431232 rows in this data file, including the header line. There are 180733 unique patients in this data file. It does not match the number of patients listed in the `patients.csv.gz` file, 299712.
 ```{bash}
 #| eval: true
 zcat < ~/mimic/hosp/admissions.csv.gz | head -5
+```
+
+```{bash}
+#| eval: true
 zcat < ~/mimic/hosp/admissions.csv.gz | awk -F, '{print $1}' | sort | uniq | sed '$d'| wc -l
 ```
+6. What are the possible values taken by each of the variable `admission_type`, `admission_location`, `insurance`, and `race`? Also report the count for each unique value of these variables. (Hint: combine Linux commands `zcat`, `head`/`tail`, `awk`, `uniq -c`, `wc`, and so on; skip the header line.)
 
-6. What are the possible values taken by each of the variable `admission_type`, `admission_location`, `insurance`, and `ethnicity`? Also report the count for each unique value of these variables. (Hint: combine Linux commands `zcat`, `head`/`tail`, `awk`, `uniq -c`, `wc`, and so on; skip the header line.)
-
-**Answer:** The following bash script displays the possible values and the count for each unique value of the variable `admission_type`. There are 9 unique values for the variable `admission_type`. The counts for each unique value are as follows.
+**Answer:** The following bash script displays the possible values and the count for each unique value of the variable `admission_type`. There are 9 unique values for the variable `admission_type`, not including the header line. The counts for each unique value are as follows.
 ```{bash}
 #| eval: true
-zcat < ~/mimic/hosp/admissions.csv.gz|awk -F, '{print $6}' | sort | uniq -c|sed '$d'
 zcat < ~/mimic/hosp/admissions.csv.gz | awk -F, '{print $6}' | sort | uniq | sed '$d'|wc -l
+zcat < ~/mimic/hosp/admissions.csv.gz|awk -F, '{print $6}' | sort | uniq -c|sed '$d'
 ```
-**Answer:** The following bash script displays the possible values and the count for each unique value of the variable `admission_location`. There are 11 unique values for the variable `admission_location`. The counts for each unique value are as follows.
+**Answer:** The following bash script displays the possible values and the count for each unique value of the variable `admission_location`. There are 11 unique values for the variable `admission_location`, not including the header line. The counts for each unique value are as follows.
 ```{bash}
 #| eval: true
-zcat < ~/mimic/hosp/admissions.csv.gz|awk -F, '{print $8}' | sort | uniq -c|sed '$d'
 zcat < ~/mimic/hosp/admissions.csv.gz | awk -F, '{print $8}' | sort | uniq | sed '$d'|wc -l
+zcat < ~/mimic/hosp/admissions.csv.gz|awk -F, '{print $8}' | sort | uniq -c|sed '$d'
 ```
-**Answer:** The following bash script displays the possible values and the count for each unique value of the variable `insurance`. There are 3 unique values for the variable `insurance`. The counts for each unique value are as follows.
+**Answer:** The following bash script displays the possible values and the count for each unique value of the variable `insurance`. There are 3 unique values for the variable `insurance`, not including the header line. The counts for each unique value are as follows.
 ```{bash}
 #| eval: true
-zcat < ~/mimic/hosp/admissions.csv.gz|awk -F, '{print $10}' | sort | uniq -c|sed '$d'
 zcat < ~/mimic/hosp/admissions.csv.gz | awk -F, '{print $10}' | sort | uniq | sed '$d'|wc -l
+zcat < ~/mimic/hosp/admissions.csv.gz|awk -F, '{print $10}' | sort | uniq -c|sed '$d'
 ```
-**Answer:** The following bash script displays the possible values and the count for each unique value of the variable `ethnicity`. There are 33 unique values for the variable `ethnicity`. The counts for each unique value are as follows.
+**Answer:** The following bash script displays the possible values and the count for each unique value of the variable `race`. There are 33 unique values for the variable `race`, not including the header line. The counts for each unique value are as follows.
 ```{bash}
 #| eval: true
-zcat < ~/mimic/hosp/admissions.csv.gz|awk -F, '{print $13}' | sort | uniq -c|sed '$d'
 zcat < ~/mimic/hosp/admissions.csv.gz | awk -F, '{print $13}' | sort | uniq | sed '$d'|wc -l
+zcat < ~/mimic/hosp/admissions.csv.gz|awk -F, '{print $13}' | sort | uniq -c|sed '$d'
 ```
 
 7. _To compress, or not to compress. That's the question._ Let's focus on the big data file `labevents.csv.gz`. Compare compressed gz file size to the uncompressed file size. Compare the run times of `zcat < ~/mimic/labevents.csv.gz | wc -l` versus `wc -l labevents.csv`. Discuss the trade off between storage and speed for big data files. (Hint: `gzip -dk < FILENAME.gz > ./FILENAME`. Remember to delete the large `labevents.csv` file after the exercise.)
@@ -159,7 +166,7 @@ time zcat < ~/mimic/hosp/labevents.csv.gz | wc -l
 time wc -l labevents.csv
 ```
 
-**Answer:** In theory, the trade off between storage and speed for big data files is that compressed files take up less storage space but take longer to run. Uncompressed files take up more storage space but take less time to run. However, in last question, the run time of `zcat < ~/mimic/labevents.csv.gz | wc -l` is shorter than the run time of `wc -l labevents.csv`. 
+**Answer:** In theory, the trade off between storage and speed for big data files is that compressed files take up less storage space but take longer to run. Uncompressed files take up more storage space but take less time to run. However, in my computer, the run time of `zcat < ~/mimic/labevents.csv.gz | wc -l` is shorter than the run time of `wc -l labevents.csv`. 
 
 **Answer:** Finally, delete the large `labevents.csv` file.
 ```{bash}
@@ -170,7 +177,7 @@ rm labevents.csv
 
 1. You and your friend just have finished reading *Pride and Prejudice* by Jane Austen. Among the four main characters in the book, Elizabeth, Jane, Lydia, and Darcy, your friend thinks that Darcy was the most mentioned. You, however, are certain it was Elizabeth. Obtain the full text of the novel from <http://www.gutenberg.org/cache/epub/42671/pg42671.txt> and save to your local folder. 
 ```{bash}
-#| eval: false
+#| eval: true
 wget -nc http://www.gutenberg.org/cache/epub/42671/pg42671.txt
 ```
 Explain what `wget -nc` does. Do **not** put this text file `pg42671.txt` in Git. Complete the following loop to tabulate the number of times each of the four characters is mentioned using Linux commands.
@@ -229,76 +236,106 @@ Try following commands in Bash and interpret the results: `cal`, `cal 2024`, `ca
 cal
 ```
 **Answer:** The `cal` command displays a calendar for the current month.
+
+
 ```{bash}
 #| eval: true
 cal 2024
 ```
 **Answer:** The `cal 2024` command displays a calendar for the year 2024.
+
+
 ```{bash}
 #| eval: true
 cal 9 1752
 ```
 **Answer:** The `cal 9 1752` command displays a calendar for the month of September in the year 1752. The calendar for the month of September in the year 1752 is unusual because the calendar for the month of September in the year 1752 is missing 11 days, from 3rd to 13 th. The calendar for the month of September in the year 1752 is missing 11 days because the British Empire and its colonies switched from the Julian calendar to the Gregorian calendar in September 1752. The Julian calendar was 11 days behind the Gregorian calendar. Therefore, the calendar for the month of September in the year 1752 is missing 11 days.
+
+
 ```{bash}
 #| eval: true
 date
 ```
 **Answer:** The `date` command displays the current date and time.
+
+
 ```{bash}
 #| eval: true
 hostname
 ```
-**Answer:** The `hostname` command displays the name of the current host system.
+**Answer:** The `hostname` command displays the name of the current host system. It is used to obtain the DNS (Domain Name System) name and set the system’s hostname or NIS (Network Information System) domain name.
+
+
 ```{bash}
 #| eval: true
 arch
 ```
-**Answer:** The `arch` command displays the architectural information about the operating system.
+**Answer:** The `arch` command displays the architectural information about the computer.
+
+
 ```{bash}
 #| eval: true
 uname -a
 ```
-**Answer:** The `uname -a` command displays the the name, version and other details about the current machine and the operating system running on it.
+**Answer:** The `uname -a` command displays the the name, version and other details about the operating system and the hardware. Paramater `-a` means reveal all the information.
+
+
 ```{bash}
 #| eval: true
 uptime
 ```
 **Answer:** The `uptime` command displays the current time, how long the system has been running, how many users are currently logged on, and the system load averages for the past 1, 5, and 15 minutes.
+
+
 ```{bash}
 #| eval: true
 who am i
 ```
 **Answer:** The `who am i` command displays the login information of the current user.
+
+
 ```{bash}
 #| eval: true
 who
 ```
-**Answer:** The `who` command displays the login information of all users.
+**Answer:** The `who` command displays the login information of users who log in to the UNIX or Linux operating system.
+
+
 ```{bash}
 #| eval: true
 w
 ```
 **Answer:** The `w` command displays the login information of all users and what they are doing.
+
+
 ```{bash}
 #| eval: true
 id
 ```
 **Answer:** The `id` command displays the current user's user and group IDs. "uid" is the user ID and it is a unique identification in the system. "gid" is the group ID and it is the a unique identification that represents the primary group to which the user belongs. "groups" is additional groups and it is a unique identification of other additional groups to which the user belongs.
+
+
 ```{bash}
 #| eval: true
 last | head
 ```
 **Answer:** The `last | head` command displays the last 10 users logged on.
+
+
 ```{bash}
 #| eval: true
 echo {con,pre}{sent,fer}{s,ed}
 ```
-**Answer:** The `echo {con,pre}{sent,fer}{s,ed}` command selects the contents in curly brackets and group them together. It displays the strings "consents", "consented", "confers", "confered", "presents", "presented", "prefers", and "prefered".
+**Answer:** The `echo {con,pre}{sent,fer}{s,ed}` command gives us the combination of all the possible words. It selects the contents in curly brackets and groups them together.
+
+
 ```{bash}
 #| eval: true
 time sleep 5
 ```
-**Answer:** The `time sleep 5` command displays the time it takes to run the command `sleep 5`, which is 5 seconds.
+**Answer:** The `time sleep 5` command displays the time it takes to run the command `sleep 5`, which is 5 seconds. `sleep` command is used to delay the next command execution in the script for a fixed amount of time.
+
+
 ```{bash}
 #| eval: true
 history | tail

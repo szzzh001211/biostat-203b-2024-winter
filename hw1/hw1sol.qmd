@@ -47,7 +47,10 @@ sessionInfo()
 
 This exercise (and later in this course) uses the [MIMIC-IV data v2.2](https://physionet.org/content/mimiciv/2.2/), a freely accessible critical care database developed by the MIT Lab for Computational Physiology. Follow the instructions at <https://mimic.mit.edu/docs/gettingstarted/> to (1) complete the CITI `Data or Specimens Only Research` course and (2) obtain the PhysioNet credential for using the MIMIC-IV data. Display the verification links to your completion report and completion certificate here. **You must complete Q2 before working on the remaining questions.** (Hint: The CITI training takes a few hours and the PhysioNet credentialing takes a couple days; do not leave it to the last minute.)
 
-**Answer:** I have finished the CITI training and obtained the PhysioNet credential. The verification link to my completion report is as follows: <https://www.citiprogram.org/verify/?kb2b9764b-f91d-471b-a439-9448b4e5f4a2-60470489>. The verification link to my completion certificate is as follows: <https://www.citiprogram.org/verify/?wb9c162da-a9ca-4f72-9484-118cc2b0f9ca-60470489>.
+**Answer:** I have finished the CITI training and obtained the PhysioNet credential. The verification link to my completion report is as follows: <https://www.citiprogram.org/verify/?kb2b9764b-f91d-471b-a439-9448b4e5f4a2-60470489>. The verification link to my completion certificate is as follows: <https://www.citiprogram.org/verify/?wb9c162da-a9ca-4f72-9484-118cc2b0f9ca-60470489>. The PhysioNet credential is shown as follows: 
+<p align="center">
+<img src="./credential.png" width="100%"/>
+</p>
 
 ## Q3. Linux Shell Commands
 

@@ -82,8 +82,8 @@ ls -l ~/mimic/icu/
 
 **Answer:**  
 The `zcat` command is used to display the contents of a compressed file without decompressing them.  
-The `zless` command is used to display the contents of a compressed file one screen at a time.   
-The `zmore` command is used to display the contents of a compressed file page by page.  
+The `zless` command is used to display the contents of a compressed file one page at a time, and if we scroll down or click down button, we can see the next line.  
+The `zmore` command is used to display the contents of a compressed file one page at a time, and if we scroll down or click down button, we can see the next page.  
 The `zgrep` command is used to search for a specified pattern in a compressed file.
 
 4. (Looping in Bash) What's the output of the following bash script?
@@ -326,7 +326,7 @@ last | head
 #| eval: true
 echo {con,pre}{sent,fer}{s,ed}
 ```
-**Answer:** The `echo {con,pre}{sent,fer}{s,ed}` command gives us the combination of all the possible words. It selects the contents in curly brackets and groups them together.
+**Answer:** The `echo {con,pre}{sent,fer}{s,ed}` command gives us the combination of all the possible words. It selects the contents in curly brackets and groups them together. Each time, it selects one word from each curly bracket and combines them. Then, it displays all the possible combinations of the words in curly brackets.
 
 
 ```{bash}
@@ -340,6 +340,10 @@ time sleep 5
 #| eval: true
 history | tail
 ```
+<p align="center">
+<img src="./Q5.png" width="100%"/>
+</p>
+
 **Answer:** The `history | tail` command displays the last 10 commands that were run in the bash shell.
 
 ## Q6. Book

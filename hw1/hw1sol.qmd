@@ -101,7 +101,7 @@ done
 
 Display the number of lines in each data file using a similar loop. (Hint: combine linux commands `zcat <` and `wc -l`.)
 
-**Answer:** The following bash script displays the number of lines in each data file in the `~/mimic/hosp/` directory. `admissions.csv.gz` has 431232 lines. `labevents.csv.gz` has 118171368 lines. `patients.csv.gz` has 299713 lines.
+**Answer:** The following bash script displays the number of lines in each data file in the `~/mimic/hosp/` directory. `admissions.csv.gz` has 431232 lines. `labevents.csv.gz` has 118171368 lines. `patients.csv.gz` has 299713 lines. All three include the header line.
 ```{bash}
 #| eval: true
 for datafile in ~/mimic/hosp/{a,l,pa}*.gz
@@ -120,33 +120,42 @@ zcat < ~/mimic/hosp/admissions.csv.gz | head -5
 
 ```{bash}
 #| eval: true
-zcat < ~/mimic/hosp/admissions.csv.gz | awk -F, '{print $1}' | sort | uniq | sed '$d'| wc -l
+zcat < ~/mimic/hosp/admissions.csv.gz | awk -F, '{print $1}' | sort \
+| uniq | sed '$d'| wc -l
 ```
 6. What are the possible values taken by each of the variable `admission_type`, `admission_location`, `insurance`, and `race`? Also report the count for each unique value of these variables. (Hint: combine Linux commands `zcat`, `head`/`tail`, `awk`, `uniq -c`, `wc`, and so on; skip the header line.)
 
 **Answer:** The following bash script displays the possible values and the count for each unique value of the variable `admission_type`. There are 9 unique values for the variable `admission_type`, not including the header line. The counts for each unique value are as follows.
 ```{bash}
 #| eval: true
-zcat < ~/mimic/hosp/admissions.csv.gz | awk -F, '{print $6}' | sort | uniq | sed '$d'|wc -l
-zcat < ~/mimic/hosp/admissions.csv.gz|awk -F, '{print $6}' | sort | uniq -c|sed '$d'
+zcat < ~/mimic/hosp/admissions.csv.gz | awk -F, '{print $6}' | sort \
+| uniq | sed '$d'|wc -l
+zcat < ~/mimic/hosp/admissions.csv.gz | awk -F, '{print $6}' | sort \
+| uniq -c | sed '$d'
 ```
 **Answer:** The following bash script displays the possible values and the count for each unique value of the variable `admission_location`. There are 11 unique values for the variable `admission_location`, not including the header line. The counts for each unique value are as follows.
 ```{bash}
 #| eval: true
-zcat < ~/mimic/hosp/admissions.csv.gz | awk -F, '{print $8}' | sort | uniq | sed '$d'|wc -l
-zcat < ~/mimic/hosp/admissions.csv.gz|awk -F, '{print $8}' | sort | uniq -c|sed '$d'
+zcat < ~/mimic/hosp/admissions.csv.gz | awk -F, '{print $8}' | sort \
+| uniq | sed '$d'|wc -l
+zcat < ~/mimic/hosp/admissions.csv.gz | awk -F, '{print $8}' | sort \
+| uniq -c | sed '$d'
 ```
 **Answer:** The following bash script displays the possible values and the count for each unique value of the variable `insurance`. There are 3 unique values for the variable `insurance`, not including the header line. The counts for each unique value are as follows.
 ```{bash}
 #| eval: true
-zcat < ~/mimic/hosp/admissions.csv.gz | awk -F, '{print $10}' | sort | uniq | sed '$d'|wc -l
-zcat < ~/mimic/hosp/admissions.csv.gz|awk -F, '{print $10}' | sort | uniq -c|sed '$d'
+zcat < ~/mimic/hosp/admissions.csv.gz | awk -F, '{print $10}' | sort \
+| uniq | sed '$d'|wc -l
+zcat < ~/mimic/hosp/admissions.csv.gz | awk -F, '{print $10}' | sort \
+| uniq -c | sed '$d'
 ```
 **Answer:** The following bash script displays the possible values and the count for each unique value of the variable `race`. There are 33 unique values for the variable `race`, not including the header line. The counts for each unique value are as follows.
 ```{bash}
 #| eval: true
-zcat < ~/mimic/hosp/admissions.csv.gz | awk -F, '{print $13}' | sort | uniq | sed '$d'|wc -l
-zcat < ~/mimic/hosp/admissions.csv.gz|awk -F, '{print $13}' | sort | uniq -c|sed '$d'
+zcat < ~/mimic/hosp/admissions.csv.gz | awk -F, '{print $13}' | sort \
+| uniq | sed '$d'|wc -l
+zcat < ~/mimic/hosp/admissions.csv.gz | awk -F, '{print $13}' | sort \
+| uniq -c | sed '$d'
 ```
 
 7. _To compress, or not to compress. That's the question._ Let's focus on the big data file `labevents.csv.gz`. Compare compressed gz file size to the uncompressed file size. Compare the run times of `zcat < ~/mimic/labevents.csv.gz | wc -l` versus `wc -l labevents.csv`. Discuss the trade off between storage and speed for big data files. (Hint: `gzip -dk < FILENAME.gz > ./FILENAME`. Remember to delete the large `labevents.csv` file after the exercise.)

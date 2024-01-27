@@ -24,7 +24,7 @@ execute:
 ---
 
 Display machine information for reproducibility:
-```{r}
+```{r,eval=TRUE}
 sessionInfo()
 ```
 
@@ -39,7 +39,7 @@ library(tidyverse)
 ```
 
 Display memory information of your computer
-```{r}
+```{r,eval=TRUE}
 memuse::Sys.meminfo()
 ```
 
@@ -47,11 +47,11 @@ In this exercise, we explore various tools for ingesting the [MIMIC-IV](https://
 
 Display the contents of MIMIC `hosp` and `icu` data folders:
 
-```{bash}
+```{bash,eval=TRUE}
 ls -l ~/mimic/hosp/
 ```
 
-```{bash}
+```{bash,eval=TRUE}
 ls -l ~/mimic/icu/
 ```
 
@@ -59,13 +59,57 @@ ls -l ~/mimic/icu/
 
 ### Q1.1 Speed, memory, and data types
 
-There are quite a few utilities in R for reading plain text data files. Let us test the speed of reading a moderate sized compressed csv file, `admissions.csv.gz`, by three functions: `read.csv` in base R, `read_csv` in tidyverse, and `fread` in the data.table package.
+There are quite a few utilities in R for reading plain text data files. Let us test the speed of reading a moderate sized compressed csv file, `admissions.csv.gz`, by three functions: `read.csv` in base R, `read_csv` in tidyverse, and `fread` in the data.table package. 
+```{r,eval=FALSE}
+str(read.csv("~/mimic/hosp/admissions.csv.gz"))
+system.time(read.csv("~/mimic/hosp/admissions.csv.gz"))
+pryr::object_size(read.csv("~/mimic/hosp/admissions.csv.gz"))
+```
+
+```{r,eval=FALSE}
+str(read_csv("~/mimic/hosp/admissions.csv.gz"))
+system.time(read_csv("~/mimic/hosp/admissions.csv.gz"))
+pryr::object_size(read_csv("~/mimic/hosp/admissions.csv.gz"))
+```
+
+```{r,eval=FALSE}
+str(fread("~/mimic/hosp/admissions.csv.gz"))
+system.time(fread("~/mimic/hosp/admissions.csv.gz"))
+pryr::object_size(fread("~/mimic/hosp/admissions.csv.gz"))
+```
 
 Which function is fastest? Is there difference in the (default) parsed data types? How much memory does each resultant dataframe or tibble use? (Hint: `system.time` measures run times; `pryr::object_size` measures memory usage.) 
+
+**Answer:** `read.csv` uses 4.566 seconds and the memory usage is 158.71 MB. `read_csv` uses 1.993 seconds and the memory usage is 55.31 MB.  `fread` uses 0.557 seconds and the memory usage is 50.13 MB. So `fread` is the fastest. `read_csv` is the slowest. `read_csv` and `fread` use less memory than `read.csv`.  
+
+The default parsed data types are different.
+
+- For variables `admission_type`, `admission_location`, `discharge_location`, `insurance`, `language`, `religion`, `marital_status` and `race`, all three have the same data types, `character`.
+
+- For variables `subject_id`, `hadm_id` and `hospital_expire_flag`, `read.csv` and `fread` use `integer` while `read_csv` uses `double`.
+
+- For variables `admittime`, `dischtime`, `deathtime`, , `edregtime` and `edouttime`, `read.csv` uses `character` while `read_csv` and `fread` use `POSIXct`, a data type used to represent date and time.
+
+
 
 ### Q1.2 User-supplied data types
 
 Re-ingest `admissions.csv.gz` by indicating appropriate column data types in `read_csv`. Does the run time change? How much memory does the result tibble use? (Hint: `col_types` argument in `read_csv`.)
+```{r,eval=FALSE}
+col_type <- cols(
+  "admission_type" = "f",
+  "admission_location" = "f",
+  "discharge_location" = "f",
+  "insurance" = "f",
+  "language" = "f",
+  "marital_status" = "f",
+  "race"="f",
+  "hospital_expire_flag"="f"
+)
+system.time(read_csv("~/mimic/hosp/admissions.csv.gz", col_types =col_type ))
+pryr::object_size(read_csv("~/mimic/hosp/admissions.csv.gz"))
+```
+**Answer:** We change column data types for variables `admission_type`, `admission_location`, `discharge_location`, `insurance`, `language`, `marital_status`, `race` and `hospital_expire_flag` to `factor`. The run time is 1.803 seconds. The memory usage is 55.31 MB. The run time becomes shorter and the memory usage does not change.
 
 ## Q2. Ingest big data files
 

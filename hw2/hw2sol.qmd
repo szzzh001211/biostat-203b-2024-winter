@@ -115,10 +115,12 @@ pryr::object_size(read_csv("~/mimic/hosp/admissions.csv.gz"))
 
 Let us focus on a bigger file, `labevents.csv.gz`, which is about 125x bigger than `admissions.csv.gz`.
 ```{bash}
+#| eval: true
 ls -l ~/mimic/hosp/labevents.csv.gz
 ```
 Display the first 10 lines of this file.
 ```{bash}
+#| eval: true
 zcat < ~/mimic/hosp/labevents.csv.gz | head -10
 ```
 
@@ -172,15 +174,23 @@ zcat < ~/mimic/hosp/labevents.csv.gz > ./labevents.csv
 
 
 Then use [`arrow::open_dataset`](https://arrow.apache.org/docs/r/reference/open_dataset.html) to ingest `labevents.csv`, select columns, and filter `itemid` as in Q2.3. How long does the ingest+select+filter process take? Display the number of rows and the first 10 rows of the result tibble, and make sure they match those in Q2.3. (Hint: use `dplyr` verbs for selecting columns and filtering rows.)
+```{r,eval=TRUE}
+labevents_csv <- arrow::open_dataset("./labevents.csv", format = "csv")
+filtered_labevents_csv <- labevents_csv |> 
+  dplyr::select(subject_id, itemid, charttime, valuenum) |> 
+  dplyr::filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
+  dplyr::collect()
+```
 ```{r,eval=FALSE}
-labevents_csv <- open_dataset("./labevents.csv", format = "csv")
-system.time(filtered_data_csv <- labevents_csv |> select(subject_id, itemid, charttime, valuenum) |> 
-  filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> collect())
+system.time(filtered_labevents_csv <- labevents_csv |> 
+              dplyr::select(subject_id, itemid, charttime, valuenum) |> 
+              dplyr::filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
+              dplyr::collect())
 ```
 
 ```{r,eval=TRUE}
-nrow(filtered_data_csv)
-head(filtered_data_csv,10)
+nrow(filtered_labevents_csv)
+head(filtered_labevents_csv,10)
 ```
 **Answer:** It takes 33.742 seconds for the ingest+select+filter process. There are 24855909 rows and they match those in Q2.3.
 
@@ -191,25 +201,34 @@ Write a few sentences to explain what is Apache Arrow. Imagine you want to expla
 ### Q2.5 Compress `labevents.csv` to Parquet format and ingest/select/filter
 
 Re-write the csv file `labevents.csv` in the binary Parquet format (Hint: [`arrow::write_dataset`](https://arrow.apache.org/docs/r/reference/write_dataset.html).) How large is the Parquet file(s)? How long does the ingest+select+filter process of the Parquet file(s) take? Display the number of rows and the first 10 rows of the result tibble and make sure they match those in Q2.3. (Hint: use `dplyr` verbs for selecting columns and filtering rows.)
-```{r,eval=FALSE}
-labevents_csv <- open_dataset("./labevents.csv", format = "csv")
-write_dataset(labevents_csv, format = "parquet", path = "./")
+```{r,eval=TRUE}
+labevents_csv <- arrow::open_dataset("./labevents.csv", format = "csv")
+arrow::write_dataset(labevents_csv, format = "parquet", path = "./")
 ```
 **Answer:** The Parquet file is 1.9G.
 
-```{r,eval=FALSE}
+```{r,eval=TRUE}
 file.rename("./part-0.parquet","./labevents.parquet")
 ```
 
-``` {r,eval=FALSE}
-labevents_parquet <- open_dataset("./labevents.parquet", format = "parquet")
-system.time(filtered_data_parquet <- labevents_parquet |> select(subject_id, itemid, charttime, valuenum) |> 
-  filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> collect())
+``` {r,eval=TRUE}
+labevents_parquet <- arrow::open_dataset("./labevents.parquet", format = "parquet")
+filtered_labevents_parquet <- labevents_parquet |> 
+  dplyr::select(subject_id, itemid, charttime, valuenum) |> 
+  dplyr::filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
+  dplyr::collect()
+```
+
+```{r,eval=FALSE}
+system.time(filtered_labevents_parquet <- labevents_parquet |> 
+              dplyr::select(subject_id, itemid, charttime, valuenum) |> 
+              dplyr::filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
+              dplyr::collect())
 ```
 
 ```{r,eval=TRUE}
-nrow(filtered_data_parquet)
-head(filtered_data_parquet,10)
+nrow(filtered_labevents_parquet)
+head(filtered_labevents_parquet,10)
 ```
 **Answer:** It takes 16.456 seconds for the ingest+select+filter process, which is almost half of the time of the csv file. There are 24855909 rows and they match those in Q2.3.
 
@@ -219,21 +238,30 @@ Write a few sentences to explain what is the Parquet format. Imagine you want to
 ### Q2.6 DuckDB
 
 Ingest the Parquet file, convert it to a DuckDB table by [`arrow::to_duckdb`](https://arrow.apache.org/docs/r/reference/to_duckdb.html), select columns, and filter rows as in Q2.5. How long does the ingest+convert+select+filter process take? Display the number of rows and the first 10 rows of the result tibble and make sure they match those in Q2.3. (Hint: use `dplyr` verbs for selecting columns and filtering rows.)
+```{r,eval=TRUE}
+labevents_parquet <- arrow::open_dataset("./labevents.parquet", format = "parquet")
+labevents_duckdb <- arrow::to_duckdb(labevents_parquet,table = "labevents")
+filtered_labevents_duckdb <- labevents_duckdb |> 
+  dplyr::select(subject_id, itemid, charttime, valuenum) |> 
+  dplyr::filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
+  dplyr::collect()
+```
+
 ```{r,eval=FALSE}
-labevents_parquet <- open_dataset("./labevents.parquet", format = "parquet")
-labevents_duckdb <- to_duckdb(labevents_parquet,table = "labevents")
-system.time(filtered_data_duckdb <- labevents_duckdb |> select(subject_id, itemid, charttime, valuenum) |> 
-  filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> collect())
+system.time(filtered_labevents_duckdb <- labevents_duckdb |> 
+              dplyr::select(subject_id, itemid, charttime, valuenum) |> 
+              dplyr::filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
+              dplyr::collect())
 ```
 
 ```{r,eval=TRUE}
-nrow(filtered_data_duckdb)
-head(filtered_data_duckdb,10)
+nrow(filtered_labevents_duckdb)
+head(filtered_labevents_duckdb,10)
 ```
 **Answer:** It takes 19.658 seconds for the ingest+convert+select+filter process, which is faster than the csv and almost same as the parquet file. There are 24855909 rows and they match those in Q2.3.
 
 Write a few sentences to explain what is DuckDB. Imagine you want to explain it to a layman in an elevator.
-**Answer:** DuckDB is like a super-fast and efficient way to store and work with data. It's kind of like having a super-powered calculator in your pocket that can handle huge amounts of data really quickly. DuckDB is designed to be really flexible, so you can use it for lots of different things, like analyzing data, running queries, or even building apps. It's like having a Swiss Army knife for data, making it easy to crunch numbers and find insights without having to wait around for ages.
+**Answer:** DuckDB is like a super-fast and efficient way to store and work with data. It's kind of like having a super-powered calculator in your pocket that can handle huge amounts of data really quickly. DuckDB is designed to be really flexible, so you can use it for lots of different things, like analyzing data, running queries, or even building apps. It's like having a Swiss Army knife for data, making it easy to crunch numbers and find insights without having to wait around for ages. 
 
 ```{bash}
 #| eval: false
@@ -244,13 +272,35 @@ rm labevents.csv
 
 [`chartevents.csv.gz`](https://mimic.mit.edu/docs/iv/modules/icu/chartevents/) contains all the charted data available for a patient. During their ICU stay, the primary repository of a patient’s information is their electronic chart. The `itemid` variable indicates a single measurement type in the database. The `value` variable is the value measured for `itemid`. The first 10 lines of `chartevents.csv.gz` are
 ```{bash}
+#| eval: true
 zcat < ~/mimic/icu/chartevents.csv.gz | head -10
 ```
 [`d_items.csv.gz`](https://mimic.mit.edu/docs/iv/modules/icu/d_items/) is the dictionary for the `itemid` in `chartevents.csv.gz`.
 ```{bash}
+#| eval: true
 zcat < ~/mimic/icu/d_items.csv.gz | head -10
 ```
 In later exercises, we are interested in the vitals for ICU patients: heart rate (220045), mean non-invasive blood pressure (220181), systolic non-invasive blood pressure (220179), body temperature in Fahrenheit (223761), and respiratory rate (220210). Retrieve a subset of `chartevents.csv.gz` only containing these items, using the favorite method you learnt in Q2. 
 
 Document the steps and show code. Display the number of rows and the first 10 rows of the result tibble.
+
+**Answer:** I used the same method as Q2.3 to ingest and filter the `chartevents.csv.gz` file.  
+First step is to write a Bash command to extract these rows from `chartevents.csv.gz` and save the result to a new file `chartevents_filtered.csv.gz` in the current working directory.
+```{bash}
+#| eval: false
+zcat < ~/mimic/icu/chartevents.csv.gz | awk -F, 'BEGIN{OFS=","} {if ($7 == 220045 || $7 == 220181 || $7 == 220179 \
+|| $7 == 223761 || $7 == 220210) print}' | gzip > ./chartevents_filtered.csv.gz
+```
+Second step is to use bash command to display the number of rows and the first 10 rows of the new file.
+```{bash}
+#| eval: true
+zcat < ./chartevents_filtered.csv.gz | head -10
+zcat < ./chartevents_filtered.csv.gz | wc -l
+```
+**Answer:** There are 22502319 rows.
+
+
+
+
+
 

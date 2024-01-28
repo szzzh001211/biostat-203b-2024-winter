@@ -29,7 +29,7 @@ sessionInfo()
 ```
 
 Load necessary libraries (you can add more as needed).
-```{r setup}
+```{r setup,eval=TRUE}
 library(arrow)
 library(data.table)
 library(memuse)
@@ -175,17 +175,17 @@ zcat < ~/mimic/hosp/labevents.csv.gz > ./labevents.csv
 
 Then use [`arrow::open_dataset`](https://arrow.apache.org/docs/r/reference/open_dataset.html) to ingest `labevents.csv`, select columns, and filter `itemid` as in Q2.3. How long does the ingest+select+filter process take? Display the number of rows and the first 10 rows of the result tibble, and make sure they match those in Q2.3. (Hint: use `dplyr` verbs for selecting columns and filtering rows.)
 ```{r,eval=TRUE}
-labevents_csv <- arrow::open_dataset("./labevents.csv", format = "csv")
+labevents_csv <- open_dataset("./labevents.csv", format = "csv")
 filtered_labevents_csv <- labevents_csv |> 
-  dplyr::select(subject_id, itemid, charttime, valuenum) |> 
-  dplyr::filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
-  dplyr::collect()
+  select(subject_id, itemid, charttime, valuenum) |> 
+  filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
+  collect()
 ```
 ```{r,eval=FALSE}
 system.time(filtered_labevents_csv <- labevents_csv |> 
-              dplyr::select(subject_id, itemid, charttime, valuenum) |> 
-              dplyr::filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
-              dplyr::collect())
+              select(subject_id, itemid, charttime, valuenum) |> 
+              filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
+              collect())
 ```
 
 ```{r,eval=TRUE}
@@ -202,8 +202,8 @@ Write a few sentences to explain what is Apache Arrow. Imagine you want to expla
 
 Re-write the csv file `labevents.csv` in the binary Parquet format (Hint: [`arrow::write_dataset`](https://arrow.apache.org/docs/r/reference/write_dataset.html).) How large is the Parquet file(s)? How long does the ingest+select+filter process of the Parquet file(s) take? Display the number of rows and the first 10 rows of the result tibble and make sure they match those in Q2.3. (Hint: use `dplyr` verbs for selecting columns and filtering rows.)
 ```{r,eval=TRUE}
-labevents_csv <- arrow::open_dataset("./labevents.csv", format = "csv")
-arrow::write_dataset(labevents_csv, format = "parquet", path = "./")
+labevents_csv <- open_dataset("./labevents.csv", format = "csv")
+write_dataset(labevents_csv, format = "parquet", path = "./")
 ```
 **Answer:** The Parquet file is 1.9G.
 
@@ -212,18 +212,18 @@ file.rename("./part-0.parquet","./labevents.parquet")
 ```
 
 ``` {r,eval=TRUE}
-labevents_parquet <- arrow::open_dataset("./labevents.parquet", format = "parquet")
+labevents_parquet <- open_dataset("./labevents.parquet", format = "parquet")
 filtered_labevents_parquet <- labevents_parquet |> 
-  dplyr::select(subject_id, itemid, charttime, valuenum) |> 
-  dplyr::filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
-  dplyr::collect()
+  select(subject_id, itemid, charttime, valuenum) |> 
+  filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
+  collect()
 ```
 
 ```{r,eval=FALSE}
 system.time(filtered_labevents_parquet <- labevents_parquet |> 
-              dplyr::select(subject_id, itemid, charttime, valuenum) |> 
-              dplyr::filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
-              dplyr::collect())
+              select(subject_id, itemid, charttime, valuenum) |> 
+              filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
+              collect())
 ```
 
 ```{r,eval=TRUE}
@@ -239,19 +239,19 @@ Write a few sentences to explain what is the Parquet format. Imagine you want to
 
 Ingest the Parquet file, convert it to a DuckDB table by [`arrow::to_duckdb`](https://arrow.apache.org/docs/r/reference/to_duckdb.html), select columns, and filter rows as in Q2.5. How long does the ingest+convert+select+filter process take? Display the number of rows and the first 10 rows of the result tibble and make sure they match those in Q2.3. (Hint: use `dplyr` verbs for selecting columns and filtering rows.)
 ```{r,eval=TRUE}
-labevents_parquet <- arrow::open_dataset("./labevents.parquet", format = "parquet")
-labevents_duckdb <- arrow::to_duckdb(labevents_parquet,table = "labevents")
+labevents_parquet <- open_dataset("./labevents.parquet", format = "parquet")
+labevents_duckdb <- to_duckdb(labevents_parquet,table = "labevents")
 filtered_labevents_duckdb <- labevents_duckdb |> 
-  dplyr::select(subject_id, itemid, charttime, valuenum) |> 
-  dplyr::filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
-  dplyr::collect()
+  select(subject_id, itemid, charttime, valuenum) |> 
+  filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
+  collect()
 ```
 
 ```{r,eval=FALSE}
 system.time(filtered_labevents_duckdb <- labevents_duckdb |> 
-              dplyr::select(subject_id, itemid, charttime, valuenum) |> 
-              dplyr::filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
-              dplyr::collect())
+              select(subject_id, itemid, charttime, valuenum) |> 
+              filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
+              collect())
 ```
 
 ```{r,eval=TRUE}

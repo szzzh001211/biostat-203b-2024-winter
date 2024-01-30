@@ -151,7 +151,7 @@ Display the first 10 lines of the new file `labevents_filtered.csv.gz`. How many
 #| eval: false
 zcat < ~/mimic/hosp/labevents.csv.gz | awk -F, 'BEGIN{OFS=","} {if($5==50912 || $5==50971 || $5==50983 \
 || $5==50902 || $5==50882 || $5==51221 || $5==51301 || $5==50931) \
-print $2,$5,$7,$9}' | gzip > ./labevents_filtered.csv.gz
+print $2,$5,$7,$10}' | gzip > ./labevents_filtered.csv.gz
 ```
 
 ```{bash}
@@ -162,7 +162,7 @@ zcat < ./labevents_filtered.csv.gz | wc -l
 ```{r,eval=FALSE}
 system.time(read_csv("./labevents_filtered.csv.gz"))
 ```
-**Answer:** There are 24855909 lines in this new file. It takes 28.183 seconds to ingest `labevents_filtered.csv.gz` by using `read_csv`.
+**Answer:** There are 24855909 lines in this new file. It takes 30.981 seconds to ingest `labevents_filtered.csv.gz` by using `read_csv`.
 
 ### Q2.4 Ingest `labevents.csv` by Apache Arrow
 

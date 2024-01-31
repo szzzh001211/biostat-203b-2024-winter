@@ -182,10 +182,13 @@ filtered_labevents_csv <- labevents_csv |>
   collect()
 ```
 ```{r,eval=FALSE}
-system.time(filtered_labevents_csv <- labevents_csv |> 
+system.time({
+  labevents_csv <- open_dataset("./labevents.csv", format = "csv")
+  filtered_labevents_csv <- labevents_csv |> 
               select(subject_id, itemid, charttime, valuenum) |> 
               filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
-              collect())
+              collect()
+  })
 ```
 
 ```{r,eval=TRUE}
@@ -220,17 +223,20 @@ filtered_labevents_parquet <- labevents_parquet |>
 ```
 
 ```{r,eval=FALSE}
-system.time(filtered_labevents_parquet <- labevents_parquet |> 
+system.time({
+  labevents_parquet <- open_dataset("./labevents.parquet", format = "parquet")
+  filtered_labevents_parquet <- labevents_parquet |> 
               select(subject_id, itemid, charttime, valuenum) |> 
               filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
-              collect())
+              collect()
+  })
 ```
 
 ```{r,eval=TRUE}
 nrow(filtered_labevents_parquet)
 head(filtered_labevents_parquet,10)
 ```
-**Answer:** It takes 16.456 seconds for the ingest+select+filter process, which is almost half of the time of the csv file. There are 24855909 rows and they match those in Q2.3.
+**Answer:** It takes 17.278 seconds for the ingest+select+filter process, which is almost half of the time of the csv file. There are 24855909 rows and they match those in Q2.3.
 
 Write a few sentences to explain what is the Parquet format. Imagine you want to explain it to a layman in an elevator.
 **Answer:** Parquet is like a special way of organizing the large data so that it can be stored on many computers, kind of like splitting the table into smaller pieces and putting each piece on a different shelf. This makes it really fast to read and analyze the data, because instead of looking through the whole table at once, you can just grab the pieces you need from each shelf. So, Parquet helps big data stay organized and easy to work with, even when it's spread out across many computers. 
@@ -244,21 +250,27 @@ labevents_duckdb <- to_duckdb(labevents_parquet,table = "labevents")
 filtered_labevents_duckdb <- labevents_duckdb |> 
   select(subject_id, itemid, charttime, valuenum) |> 
   filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
+  arrange(subject_id) |>
   collect()
 ```
 
 ```{r,eval=FALSE}
-system.time(filtered_labevents_duckdb <- labevents_duckdb |> 
+system.time({
+  labevents_parquet <- open_dataset("./labevents.parquet", format = "parquet")
+  labevents_duckdb <- to_duckdb(labevents_parquet,table = "labevents")
+  filtered_labevents_duckdb <- labevents_duckdb |> 
               select(subject_id, itemid, charttime, valuenum) |> 
               filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
-              collect())
+              arrange(subject_id) |>
+              collect()
+  })
 ```
 
 ```{r,eval=TRUE}
 nrow(filtered_labevents_duckdb)
 head(filtered_labevents_duckdb,10)
 ```
-**Answer:** It takes 19.658 seconds for the ingest+convert+select+filter process, which is faster than the csv and almost same as the parquet file. There are 24855909 rows and they match those in Q2.3.
+**Answer:** It takes 32.784 seconds for the ingest+convert+select+filter process, which is almost same as the csv and slower than the parquet file. This may be because it has more commands than the Q2.4 and Q2.5. There are 24855909 rows and they match those in Q2.3.
 
 Write a few sentences to explain what is DuckDB. Imagine you want to explain it to a layman in an elevator.
 **Answer:** DuckDB is like a super-fast and efficient way to store and work with data. It's kind of like having a super-powered calculator in your pocket that can handle huge amounts of data really quickly. DuckDB is designed to be really flexible, so you can use it for lots of different things, like analyzing data, running queries, or even building apps. It's like having a Swiss Army knife for data, making it easy to crunch numbers and find insights without having to wait around for ages. 

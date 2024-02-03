@@ -159,6 +159,7 @@ print $2,$5,$7,$10}' | gzip > ./labevents_filtered.csv.gz
 zcat < ./labevents_filtered.csv.gz | head -10
 zcat < ./labevents_filtered.csv.gz | wc -l
 ```
+
 ```{r,eval=FALSE}
 system.time(read_csv("./labevents_filtered.csv.gz"))
 ```
@@ -193,6 +194,7 @@ system.time(
 ```
 
 ```{r,eval=TRUE}
+filtered_labevents_csv$charttime <- as.POSIXct(filtered_labevents_csv$charttime, format = "%Y-%m-%d %H:%M:%S", tz ="UTC")
 nrow(filtered_labevents_csv)
 head(filtered_labevents_csv,10)
 ```
@@ -231,6 +233,7 @@ system.time({
 ```
 
 ```{r,eval=TRUE}
+filtered_labevents_parquet$charttime <- as.POSIXct(filtered_labevents_parquet$charttime, format = "%Y-%m-%d %H:%M:%S", tz ="UTC")
 nrow(filtered_labevents_parquet)
 head(filtered_labevents_parquet,10)
 ```
@@ -263,6 +266,8 @@ system.time({
 ```
 
 ```{r,eval=TRUE}
+
+filtered_labevents_duckdb$charttime <- as.POSIXct(filtered_labevents_duckdb$charttime, format = "%Y-%m-%d %H:%M:%S", tz ="UTC")
 nrow(filtered_labevents_duckdb)
 head(filtered_labevents_duckdb,10)
 ```

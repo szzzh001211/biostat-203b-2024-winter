@@ -130,13 +130,15 @@ Try to ingest `labevents.csv.gz` using `read_csv`. What happens? If it takes mor
 ```{r,eval=FALSE}
 read_csv("~/mimic/hosp/labevents.csv.gz")
 ```
-**Answer:** It takes more than 5 minutes on my computer. So I abort the program.
+**Answer:** It takes more than 5 minutes on my computer and my RStudio crashed. So I abort the program.
 
 ### Q2.2 Ingest selected columns of `labevents.csv.gz` by `read_csv`
 
 Try to ingest only columns `subject_id`, `itemid`, `charttime`, and `valuenum` in `labevents.csv.gz` using `read_csv`.  Does this solve the ingestion issue? (Hint: `col_select` argument in `read_csv`.)
 ```{r,eval=FALSE}
-read_csv("~/mimic/hosp/labevents.csv.gz", col_select = c("subject_id", "itemid", "charttime", "valuenum"))
+read_csv("~/mimic/hosp/labevents.csv.gz", col_select = c("subject_id", 
+                                                         "itemid", "charttime", 
+                                                         "valuenum"))
 ```
 **Answer:** It solves the ingestion issue. It only takes around 4 minutes on my computer.
 
@@ -149,9 +151,9 @@ In later exercises, we will only be interested in the following lab items: creat
 Display the first 10 lines of the new file `labevents_filtered.csv.gz`. How many lines are in this new file? How long does it take `read_csv` to ingest `labevents_filtered.csv.gz`?
 ```{bash}
 #| eval: false
-zcat < ~/mimic/hosp/labevents.csv.gz | awk -F, 'BEGIN{OFS=","} {if($5==50912 || $5==50971 || $5==50983 \
-|| $5==50902 || $5==50882 || $5==51221 || $5==51301 || $5==50931) \
-print $2,$5,$7,$10}' | gzip > ./labevents_filtered.csv.gz
+zcat < ~/mimic/hosp/labevents.csv.gz | awk -F, 'BEGIN{OFS=","} {if($5==50912 \
+|| $5==50971 || $5==50983 || $5==50902 || $5==50882 || $5==51221 || $5==51301 \
+|| $5==50931) print $2,$5,$7,$10}' | gzip > ./labevents_filtered.csv.gz
 ```
 
 ```{bash}
@@ -179,8 +181,8 @@ Then use [`arrow::open_dataset`](https://arrow.apache.org/docs/r/reference/open_
 labevents_csv <- open_dataset("./labevents.csv", format = "csv")
 filtered_labevents_csv <- labevents_csv |> 
   select(subject_id, itemid, charttime, valuenum) |> 
-  filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
-  collect()
+  filter(itemid %in% c(50912, 50971, 50983, 50902, 
+                       50882, 51221, 51301, 50931)) |> collect()
 ```
 
 ```{r,eval=FALSE}
@@ -188,13 +190,16 @@ system.time(
   {labevents_csv <- open_dataset("./labevents.csv", format = "csv")
    filtered_labevents_csv <- labevents_csv |> 
               select(subject_id, itemid, charttime, valuenum) |> 
-              filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931))   
+              filter(itemid %in% c(50912, 50971, 50983, 50902, 
+                                   50882, 51221, 51301, 50931))   
 })
 
 ```
 
 ```{r,eval=TRUE}
-filtered_labevents_csv$charttime <- as.POSIXct(filtered_labevents_csv$charttime, format = "%Y-%m-%d %H:%M:%S", tz ="UTC")
+#filtered_labevents_csv$charttime <- as.POSIXct(filtered_labevents_csv$charttime, format = "%Y-%m-%d %H:%M:%S", tz ="UTC")
+#filtered_labevents_csv$charttim <- attr(filtered_labevents_csv$charttime, "tzone") <- "UTC"
+Sys.setenv(TZ = "UTC")
 nrow(filtered_labevents_csv)
 head(filtered_labevents_csv,10)
 ```
@@ -219,8 +224,8 @@ file.size("./labevents.parquet")
 labevents_parquet <- open_dataset("./labevents.parquet", format = "parquet")
 filtered_labevents_parquet <- labevents_parquet |> 
   select(subject_id, itemid, charttime, valuenum) |> 
-  filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
-  collect()
+  filter(itemid %in% c(50912, 50971, 50983, 50902, 
+                       50882, 51221, 51301, 50931)) |> collect()
 ```
 
 ```{r,eval=FALSE}
@@ -228,12 +233,13 @@ system.time({
   labevents_parquet <- open_dataset("./labevents.parquet", format = "parquet")
   filtered_labevents_parquet <- labevents_parquet |> 
               select(subject_id, itemid, charttime, valuenum) |> 
-              filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931))
+              filter(itemid %in% c(50912, 50971, 50983, 50902, 
+                                   50882, 51221, 51301, 50931))
   })
 ```
 
 ```{r,eval=TRUE}
-filtered_labevents_parquet$charttime <- as.POSIXct(filtered_labevents_parquet$charttime, format = "%Y-%m-%d %H:%M:%S", tz ="UTC")
+#filtered_labevents_parquet$charttime <- as.POSIXct(filtered_labevents_parquet$charttime, format = "%Y-%m-%d %H:%M:%S", tz ="UTC")
 nrow(filtered_labevents_parquet)
 head(filtered_labevents_parquet,10)
 ```
@@ -250,7 +256,8 @@ labevents_parquet <- open_dataset("./labevents.parquet", format = "parquet")
 labevents_duckdb <- to_duckdb(labevents_parquet,table = "labevents")
 filtered_labevents_duckdb <- labevents_duckdb |> 
   select(subject_id, itemid, charttime, valuenum) |> 
-  filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |> 
+  filter(itemid %in% c(50912, 50971, 50983, 50902, 
+                       50882, 51221, 51301, 50931)) |> 
   arrange(subject_id) |>
   collect()
 ```
@@ -261,13 +268,14 @@ system.time({
   labevents_duckdb <- to_duckdb(labevents_parquet,table = "labevents")
   filtered_labevents_duckdb <- labevents_duckdb |> 
               select(subject_id, itemid, charttime, valuenum) |> 
-              filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931))
+              filter(itemid %in% c(50912, 50971, 50983, 50902, 
+                                   50882, 51221, 51301, 50931))
   })
 ```
 
 ```{r,eval=TRUE}
 
-filtered_labevents_duckdb$charttime <- as.POSIXct(filtered_labevents_duckdb$charttime, format = "%Y-%m-%d %H:%M:%S", tz ="UTC")
+#filtered_labevents_duckdb$charttime <- as.POSIXct(filtered_labevents_duckdb$charttime, format = "%Y-%m-%d %H:%M:%S", tz ="UTC")
 nrow(filtered_labevents_duckdb)
 head(filtered_labevents_duckdb,10)
 ```
@@ -301,8 +309,9 @@ Document the steps and show code. Display the number of rows and the first 10 ro
 First step is to write a Bash command to extract these rows from `chartevents.csv.gz` and save the result to a new file `chartevents_filtered.csv.gz` in the current working directory.
 ```{bash}
 #| eval: false
-zcat < ~/mimic/icu/chartevents.csv.gz | awk -F, 'BEGIN{OFS=","} {if ($7 == 220045 || $7 == 220181 || $7 == 220179 \
-|| $7 == 223761 || $7 == 220210) print}' | gzip > ./chartevents_filtered.csv.gz
+zcat < ~/mimic/icu/chartevents.csv.gz | awk -F, 'BEGIN{OFS=","} {if \
+($7 == 220045 || $7 == 220181 || $7 == 220179 || $7 == 223761 || $7 == 220210) \
+print}' | gzip > ./chartevents_filtered.csv.gz
 ```
 Second step is to use bash command to display the number of rows and the first 10 rows of the new file.
 ```{bash}

@@ -3111,8 +3111,8 @@ loaded via a namespace (and not attached):
 <div class="cell" data-layout-align="center">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>memuse<span class="sc">::</span><span class="fu">Sys.meminfo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Totalram:  16.000 GiB 
-Freeram:    7.276 GiB </code></pre>
+<pre><code>Totalram:   16.000 GiB 
+Freeram:   377.129 MiB </code></pre>
 </div>
 </div>
 <p>In this exercise, we explore various tools for ingesting the <a href="https://mimic.mit.edu/docs/iv/">MIMIC-IV</a> data introduced in <a href="https://ucla-biostat-203b.github.io/2024winter/hw/hw1/hw1.html">homework 1</a>.</p>
@@ -3193,7 +3193,7 @@ Freeram:    7.276 GiB </code></pre>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  })</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>   user  system elapsed 
-  4.132   0.057   4.210 </code></pre>
+  4.136   0.052   4.190 </code></pre>
 </div>
 </div>
 <div class="cell" data-layout-align="center">
@@ -3250,7 +3250,7 @@ Freeram:    7.276 GiB </code></pre>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  })</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>   user  system elapsed 
-  1.924   0.201   0.772 </code></pre>
+  1.916   0.324   0.743 </code></pre>
 </div>
 </div>
 <div class="cell" data-layout-align="center">
@@ -3288,7 +3288,7 @@ Freeram:    7.276 GiB </code></pre>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  })</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>   user  system elapsed 
-  0.501   0.067   0.594 </code></pre>
+  0.503   0.080   0.598 </code></pre>
 </div>
 </div>
 <div class="cell" data-layout-align="center">
@@ -3372,7 +3372,7 @@ Freeram:    7.276 GiB </code></pre>
  - attr(*, &quot;problems&quot;)=&lt;externalptr&gt; </code></pre>
 </div>
 </div>
-<p><strong>Answer:</strong> We change column data types for variables <code>admission_type</code>, <code>admission_location</code>, <code>discharge_location</code>, <code>insurance</code>, <code>language</code>, <code>marital_status</code>, <code>race</code> and <code>hospital_expire_flag</code> to <code>factor</code>. The run time is 0.67 seconds. The memory usage is 41.51 MB. The run time becomes shorter and the memory usage becomes smaller.</p>
+<p><strong>Answer:</strong> We change column data types for variables <code>admission_type</code>, <code>admission_location</code>, <code>discharge_location</code>, <code>insurance</code>, <code>language</code>, <code>marital_status</code>, <code>race</code> and <code>hospital_expire_flag</code> to <code>factor</code>. The run time is 0.728 seconds. The memory usage is 41.51 MB. The run time becomes shorter and the memory usage becomes smaller.</p>
 </section>
 </section>
 <section id="q2.-ingest-big-data-files" class="level2">
@@ -3461,7 +3461,7 @@ Freeram:    7.276 GiB </code></pre>
 <span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">read_csv</span>(<span class="st">&quot;./labevents_filtered.csv.gz&quot;</span>)</span>
 <span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>  })</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p><strong>Answer:</strong> There are 24855909 lines in this new file. It takes 6.571 seconds to ingest <code>labevents_filtered.csv.gz</code> by using <code>read_csv</code>.</p>
+<p><strong>Answer:</strong> There are 24855909 lines in this new file. It takes 7.971 seconds to ingest <code>labevents_filtered.csv.gz</code> by using <code>read_csv</code>.</p>
 </section>
 <section id="q2.4-ingest-labevents.csv-by-apache-arrow" class="level3">
 <h3 class="anchored" data-anchor-id="q2.4-ingest-labevents.csv-by-apache-arrow">Q2.4 Ingest <code>labevents.csv</code> by Apache Arrow</h3>
@@ -3512,7 +3512,7 @@ Freeram:    7.276 GiB </code></pre>
 10   10000032  51301 2180-05-06 22:25:00      5  </code></pre>
 </div>
 </div>
-<p><strong>Answer:</strong> It takes 0.035 seconds for the ingest+select+filter process. There are 24855909 rows and they match those in Q2.3. Here I use <code>as.POSIXct(tz = &quot;UTC&quot;)</code> to avoid the time zone issue because in my RStudio the default time zone is set to the Los Angeles’s time zone. When I ingest the <code>labevents.csv</code> file, the <code>charttime</code> column uses the UTC time zone but when I output the results, the <code>charttime</code> column is converted to my time zone in RStudio (Los Angeles). That is why Q2.3 has different <code>charttime</code> values from Q2.4.</p>
+<p><strong>Answer:</strong> It takes 0.038 seconds for the ingest+select+filter process. There are 24855909 rows and they match those in Q2.3. Here I use <code>as.POSIXct(tz = &quot;UTC&quot;)</code> to avoid the time zone issue because in my RStudio the default time zone is set to the Los Angeles’s time zone. When I ingest the <code>labevents.csv</code> file, the <code>charttime</code> column uses the UTC time zone but when I output the results, the <code>charttime</code> column is converted to my time zone in RStudio (Los Angeles). That is why Q2.4 originally had different <code>charttime</code> values from Q2.3.</p>
 <p>Write a few sentences to explain what is Apache Arrow. Imagine you want to explain it to a layman in an elevator.</p>
 <p><strong>Answer:</strong> Apache Arrow is like a universal language for data that allows different software systems to talk to each other more efficiently. It’s a way of organizing and sharing data in a format that’s easy for computers to understand and work with, kind of like a common currency that all programs can use without needing to constantly convert or translate. This makes data processing faster and smoother, helping different software programs to work together smoothly, much like how a common language helps people from different countries communicate easily, like English.</p>
 </section>
@@ -3572,7 +3572,7 @@ Freeram:    7.276 GiB </code></pre>
 10   10000032  51301 2180-05-06 22:25:00      5  </code></pre>
 </div>
 </div>
-<p><strong>Answer:</strong> It takes 0.343 seconds for the ingest+select+filter process. There are 24855909 rows and they match those in Q2.3.</p>
+<p><strong>Answer:</strong> It takes 0.346 seconds for the ingest+select+filter process. There are 24855909 rows and they match those in Q2.3.</p>
 <p>Write a few sentences to explain what is the Parquet format. Imagine you want to explain it to a layman in an elevator.</p>
 <p><strong>Answer:</strong> Parquet is like a special way of organizing the large data so that it can be stored on many computers, kind of like splitting the table into smaller pieces and putting each piece on a different shelf. This makes it really fast to read and analyze the data, because instead of looking through the whole table at once, you can just grab the pieces you need from each shelf. So, Parquet helps big data stay organized and easy to work with, even when it’s spread out across many computers.</p>
 </section>
@@ -3626,7 +3626,7 @@ Freeram:    7.276 GiB </code></pre>
 10   10000032  51301 2180-05-06 22:25:00      5  </code></pre>
 </div>
 </div>
-<p><strong>Answer:</strong> It takes 0.289 seconds for the ingest+convert+select+filter process. There are 24855909 rows and they match those in Q2.3.</p>
+<p><strong>Answer:</strong> It takes 0.308 seconds for the ingest+convert+select+filter process. There are 24855909 rows and they match those in Q2.3.</p>
 <p>Write a few sentences to explain what is DuckDB. Imagine you want to explain it to a layman in an elevator.</p>
 <p><strong>Answer:</strong> DuckDB is a free, open source, embedded database management system designed for data analysis and online analytical processing. It is designed to be fast, reliable, portable, and easy to use. People can use it for lots of different things, like analyzing data and running queries. And it works very well with the R programming language.</p>
 <div class="cell" data-layout-align="center">

@@ -253,7 +253,7 @@ time2 <- system.time({
 nrow(filtered_labevents_csv)
 head(filtered_labevents_csv,10)
 ```
-**Answer:** It takes `r time2[3]` seconds for the ingest+select+filter process. There are 24855909 rows and they match those in Q2.3. Here I use `as.POSIXct(tz = "UTC")` to avoid the time zone issue because in my RStudio the default time zone is set to the Los Angeles's time zone. When I ingest the `labevents.csv` file, the `charttime` column uses the UTC time zone but when I output the results, the `charttime` column is converted to my time zone in RStudio (Los Angeles). That is why Q2.3 has different `charttime` values from Q2.4.
+**Answer:** It takes `r time2[3]` seconds for the ingest+select+filter process. There are 24855909 rows and they match those in Q2.3. Here I use `as.POSIXct(tz = "UTC")` to avoid the time zone issue because in my RStudio the default time zone is set to the Los Angeles's time zone. When I ingest the `labevents.csv` file, the `charttime` column uses the UTC time zone but when I output the results, the `charttime` column is converted to my time zone in RStudio (Los Angeles). That is why Q2.4 originally had different `charttime` values from Q2.3.
 
 Write a few sentences to explain what is Apache Arrow. Imagine you want to explain it to a layman in an elevator.
 

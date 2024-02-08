@@ -132,6 +132,7 @@ col_type <- cols(
 time <- system.time({
   admissions <- read_csv("~/mimic/hosp/admissions.csv.gz", col_types =col_type)
   })
+time
 ```
 
 ```{r,eval=TRUE}
@@ -212,6 +213,7 @@ zcat < ./labevents_filtered.csv.gz | wc -l
 time1 <- system.time({
   read_csv("./labevents_filtered.csv.gz")
   })
+time1
 ```
 **Answer:** There are 24855909 lines in this new file. It takes `r time1[3]` seconds to ingest `labevents_filtered.csv.gz` by using `read_csv`.
 
@@ -246,7 +248,7 @@ time2 <- system.time({
     dplyr::filter(itemid %in% c(50912, 50971, 50983, 50902, 
                                 50882, 51221, 51301, 50931))   
 })
-
+time2
 ```
 
 ```{r,eval=TRUE}
@@ -292,6 +294,7 @@ time3 <- system.time({
     dplyr::filter(itemid %in% c(50912, 50971, 50983, 50902, 
                                 50882, 51221, 51301, 50931))
   })
+time3
 ```
 
 ```{r,eval=TRUE}
@@ -333,6 +336,7 @@ time4 <- system.time({
     dplyr::filter(itemid %in% c(50912, 50971, 50983, 50902, 
                                 50882, 51221, 51301, 50931))
   })
+time4
 ```
 
 ```{r,eval=TRUE}

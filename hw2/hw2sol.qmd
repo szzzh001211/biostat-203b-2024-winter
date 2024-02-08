@@ -65,7 +65,9 @@ str(read.csv("~/mimic/hosp/admissions.csv.gz"))
 ``` 
 
 ```{r,eval=TRUE}
-system.time(read.csv("~/mimic/hosp/admissions.csv.gz"))
+system.time({
+  read.csv("~/mimic/hosp/admissions.csv.gz")
+  })
 ```
 
 ```{r,eval=TRUE}
@@ -77,7 +79,9 @@ str(read_csv("~/mimic/hosp/admissions.csv.gz"))
 ```
 
 ```{r,eval=TRUE}
-system.time(read_csv("~/mimic/hosp/admissions.csv.gz"))
+system.time({
+  read_csv("~/mimic/hosp/admissions.csv.gz")
+  })
 ```
 
 ```{r,eval=TRUE}
@@ -89,7 +93,9 @@ str(fread("~/mimic/hosp/admissions.csv.gz"))
 ```
 
 ```{r,eval=TRUE}
-system.time(fread("~/mimic/hosp/admissions.csv.gz"))
+system.time({
+  fread("~/mimic/hosp/admissions.csv.gz")
+  })
 ```
 
 ```{r,eval=TRUE}
@@ -123,8 +129,9 @@ col_type <- cols(
   "race"="f",
   "hospital_expire_flag"="f"
 )
-system.time(admissions<-read_csv("~/mimic/hosp/admissions.csv.gz", 
-                                 col_types =col_type ))
+time <- system.time({
+  admissions <- read_csv("~/mimic/hosp/admissions.csv.gz", col_types =col_type)
+  })
 ```
 
 ```{r,eval=TRUE}
@@ -134,7 +141,7 @@ pryr::object_size(admissions)
 ```{r,eval=TRUE}
 str(admissions)
 ```
-**Answer:** We change column data types for variables `admission_type`, `admission_location`, `discharge_location`, `insurance`, `language`, `marital_status`, `race` and `hospital_expire_flag` to `factor`. The run time is around 1.803 seconds. The memory usage is 41.51 MB. The run time becomes shorter and the memory usage becomes smaller.
+**Answer:** We change column data types for variables `admission_type`, `admission_location`, `discharge_location`, `insurance`, `language`, `marital_status`, `race` and `hospital_expire_flag` to `factor`. The run time is `r time[3]` seconds. The memory usage is 41.51 MB. The run time becomes shorter and the memory usage becomes smaller.
 
 ## Q2. Ingest big data files
 
@@ -202,9 +209,11 @@ zcat < ./labevents_filtered.csv.gz | wc -l
 ```
 
 ```{r,eval=TRUE}
-system.time(read_csv("./labevents_filtered.csv.gz"))
+time1 <- system.time({
+  read_csv("./labevents_filtered.csv.gz")
+  })
 ```
-**Answer:** There are 24855909 lines in this new file. It takes around 30.981 seconds to ingest `labevents_filtered.csv.gz` by using `read_csv`.
+**Answer:** There are 24855909 lines in this new file. It takes `r time1[3]` seconds to ingest `labevents_filtered.csv.gz` by using `read_csv`.
 
 ### Q2.4 Ingest `labevents.csv` by Apache Arrow
 
@@ -231,8 +240,8 @@ filtered_labevents_csv$charttime <- as.POSIXct(
 ```
 
 ```{r,eval=TRUE}
-system.time(
-  {labevents_csv <- arrow::open_dataset("./labevents.csv", format = "csv") |> 
+time2 <- system.time({
+  labevents_csv <- arrow::open_dataset("./labevents.csv", format = "csv") |> 
     dplyr::select(subject_id, itemid, charttime, valuenum) |> 
     dplyr::filter(itemid %in% c(50912, 50971, 50983, 50902, 
                                 50882, 51221, 51301, 50931))   
@@ -244,7 +253,7 @@ system.time(
 nrow(filtered_labevents_csv)
 head(filtered_labevents_csv,10)
 ```
-**Answer:** It takes around 0.034 seconds for the ingest+select+filter process. There are 24855909 rows and they match those in Q2.3. Here I use `as.POSIXct(tz = "UTC")` to avoid the time zone issue because in my RStudio the default time zone is set to the Los Angeles's time zone. When I ingest the `labevents.csv` file, the `charttime` column uses the UTC time zone but when I output the results, the `charttime` column is converted to my time zone in RStudio (Los Angeles). That is why Q2.3 has different `charttime` values from Q2.4.
+**Answer:** It takes `r time2[3]` seconds for the ingest+select+filter process. There are 24855909 rows and they match those in Q2.3. Here I use `as.POSIXct(tz = "UTC")` to avoid the time zone issue because in my RStudio the default time zone is set to the Los Angeles's time zone. When I ingest the `labevents.csv` file, the `charttime` column uses the UTC time zone but when I output the results, the `charttime` column is converted to my time zone in RStudio (Los Angeles). That is why Q2.3 has different `charttime` values from Q2.4.
 
 Write a few sentences to explain what is Apache Arrow. Imagine you want to explain it to a layman in an elevator.
 
@@ -276,7 +285,7 @@ filtered_labevents_parquet$charttime <- as.POSIXct(
 ```
 
 ```{r,eval=TRUE}
-system.time({
+time3 <- system.time({
   labevents_parquet <- arrow::open_dataset("./labevents.parquet", 
                                            format = "parquet") |> 
     dplyr::select(subject_id, itemid, charttime, valuenum) |> 
@@ -289,7 +298,7 @@ system.time({
 nrow(filtered_labevents_parquet)
 head(filtered_labevents_parquet,10)
 ```
-**Answer:** It takes around 0.301 seconds for the ingest+select+filter process. There are 24855909 rows and they match those in Q2.3.
+**Answer:** It takes `r time3[3]` seconds for the ingest+select+filter process. There are 24855909 rows and they match those in Q2.3.
 
 Write a few sentences to explain what is the Parquet format. Imagine you want to explain it to a layman in an elevator.
 
@@ -316,7 +325,7 @@ filtered_labevents_duckdb$charttime <- as.POSIXct(
 ```
 
 ```{r,eval=TRUE}
-system.time({
+time4 <- system.time({
   labevents_duckdb <- arrow::open_dataset("./labevents.parquet", 
                                            format = "parquet") |>
     arrow::to_duckdb(table = "labevents_duckdb") |> 
@@ -330,7 +339,7 @@ system.time({
 nrow(filtered_labevents_duckdb)
 head(filtered_labevents_duckdb,10)
 ```
-**Answer:** It takes around 0.329 seconds for the ingest+convert+select+filter process. There are 24855909 rows and they match those in Q2.3.
+**Answer:** It takes `r time4[3]` seconds for the ingest+convert+select+filter process. There are 24855909 rows and they match those in Q2.3.
 
 Write a few sentences to explain what is DuckDB. Imagine you want to explain it to a layman in an elevator.
 

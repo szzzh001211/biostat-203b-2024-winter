@@ -61,41 +61,82 @@ labevents_data <- arrow::open_dataset("./labevents_pq",
 ```
 
 ```{r,eval=TRUE}
-patients_data <- read_csv("~/mimic/hosp/patients.csv.gz")
-admissions_data <- read_csv("~/mimic/hosp/admissions.csv.gz")
-transfers_data <- read_csv("~/mimic/hosp/transfers.csv.gz")
-procedures_icd_data <- read_csv("~/mimic/hosp/procedures_icd.csv.gz")
-diagnoses_icd_data <- read_csv("~/mimic/hosp/diagnoses_icd.csv.gz")
-d_icd_procedures_data <- read_csv("~/mimic/hosp/d_icd_procedures.csv.gz")
-d_icd_diagnoses_data <- read_csv("~/mimic/hosp/d_icd_diagnoses.csv.gz")
+patient_id <- 10013310
+
+race_info <- read_csv("~/mimic/hosp/admissions.csv.gz") |>
+  filter(subject_id == patient_id) |>
+  select(subject_id, race)
+
+personal_info <- read_csv("~/mimic/hosp/patients.csv.gz") |>
+  filter(subject_id == patient_id) |>
+  select(subject_id, gender, anchor_age) |>
+  rename(age = anchor_age) |>
+  left_join(race_info, by = "subject_id") |>
+  distinct()
+
+
+diagonose_code_info <- read_csv("~/mimic/hosp/d_icd_diagnoses.csv.gz")
+diagnose_info <- read_csv("~/mimic/hosp/diagnoses_icd.csv.gz") |>
+  filter(subject_id == patient_id) |>
+  select(-icd_version) |>
+  filter(seq_num <= 3) |>
+  left_join(diagonose_code_info, by = c("icd_code" = "icd_code")) |>
+  select(-icd_version)
+
+
+ADT_info <- read_csv("~/mimic/hosp/transfers.csv.gz") |>
+  filter(subject_id == patient_id) |>
+  select(subject_id, hadm_id, intime, outtime, eventtype, careunit) |>
+  arrange(intime) |>
+  mutate(ADT_Type = careunit) |>
+  mutate(ADT_Type = ifelse(ADT_Type %in% c("Coronary Care Unit (CCU)", 
+                           "Neuro Surgical Intensive Care Unit (Neuro SICU)"), 
+                           "ICU/CCU", ADT_Type)) |>
+  mutate(ADT_Type = ifelse(ADT_Type %in% c("Medicine/Cardiology", "Medicine"), 
+                           "Medicine", ADT_Type)) |>
+  mutate(ADT_Type = ifelse(ADT_Type %in% c("Neuro Intermediate"), "Neuro", 
+                           ADT_Type))
+
+
+lab_info <- labevents_data |>
+  filter(subject_id == patient_id) |>
+  select(subject_id, hadm_id, charttime) |>
+  collect() |>
+  distinct()
+  
+
+procedure_code_info <- read_csv("~/mimic/hosp/d_icd_procedures.csv.gz")
+procedure_info <- read_csv("~/mimic/hosp/procedures_icd.csv.gz") |>
+  filter(subject_id == patient_id) |>
+  select(subject_id, hadm_id, chartdate, icd_code) |>
+  left_join(procedure_code_info, by = c("icd_code" = "icd_code")) |>
+  select(-icd_version) |>
+  arrange(chartdate) |>
+  distinct()
 ```
 
 ```{r,eval=TRUE}
-admission_filtered <- admissions_data |>
-  filter(subject_id == 10013310)
+title_text <- sprintf("Patient %d, %s, %d years old, %s", 
+                      personal_info$subject_id, personal_info$gender, 
+                      personal_info$age, tolower(personal_info$race))
 
-patients_filtered <- patients_data |>
-  filter(subject_id == 10013310)
+top3_text <- diagnose_info |>
+  filter(seq_num == 1) |>
+  select(long_title) |>
+  mutate(first_two_words = str_split(long_title, "\\s+") %>% sapply(function(x) 
+    paste(x[1:2], collapse = " "))) |> 
+  pull(first_two_words)
 
-transfers_filtered <- transfers_data |>
-  filter(subject_id == 10013310)
+subtitle_text <- sprintf("%s\n%s\n%s", top3_text[1], top3_text[2], top3_text[3])
 
-procedures_icd_filtered <- procedures_icd_data |>
-  filter(subject_id == 10013310)
+empty_plot <- ggplot() + 
+  geom_blank() +
+  scale_y_discrete(limits = c("Procedure", "Lab", "ADT")) +
+  labs(x = "Calendar Time", title = title_text, subtitle = subtitle_text)
 
-diagnoses_icd_filtered <- diagnoses_icd_data |>
-  filter(subject_id == 10013310)
 
-#d_icd_procedures_filtered <- d_icd_procedures_data |>
-  #filter(subject_id == 10013310)
 
-#d_icd_diagnoses_filtered <- d_icd_diagnoses_data |>
-  #filter(subject_id == 10013310)
-
-labevents_filtered <- labevents_data |>
-  filter(subject_id == 10013310) |> collect()
 ```
-
 ### Q1.2 ICU stays
 
 ICU stays are a subset of ADT history. This figure shows the vitals of the patient `10001217` during ICU stays. The x-axis is the calendar time, and the y-axis is the value of the vital. The color of the line represents the type of vital. The facet grid shows the abbreviation of the vital and the stay ID.

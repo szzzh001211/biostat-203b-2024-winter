@@ -154,7 +154,7 @@ Lab_plot <- ADT_plot +
 Procedure_plot <- Lab_plot + 
   geom_point(data = procedure_info, aes(x = chartdate, y = "Procedure", shape = short_title), 
              size = 3) +
-  labs(shape = "Procedure") +
+  labs(shape = "Procedure", y = "") +
   theme(legend.position = "bottom")
 
 plot(Procedure_plot)

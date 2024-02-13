@@ -109,9 +109,12 @@ procedure_code_info <- read_csv("~/mimic/hosp/d_icd_procedures.csv.gz")
 procedure_info <- read_csv("~/mimic/hosp/procedures_icd.csv.gz") |>
   filter(subject_id == patient_id) |>
   select(subject_id, hadm_id, chartdate, icd_code) |>
+  mutate(chartdate = as.POSIXct(chartdate, format = "%Y-%m-%d %H:%M:%S")) |>
   left_join(procedure_code_info, by = c("icd_code" = "icd_code")) |>
   select(-icd_version) |>
   arrange(chartdate) |>
+  mutate(short_title = str_split(long_title, "\\s+") %>% sapply(function(x) 
+    paste(x[1:3], collapse = " "))) |> 
   distinct()
 ```
 
@@ -134,8 +137,27 @@ empty_plot <- ggplot() +
   scale_y_discrete(limits = c("Procedure", "Lab", "ADT")) +
   labs(x = "Calendar Time", title = title_text, subtitle = subtitle_text)
 
+ADT_plot <- empty_plot + 
+  geom_segment(data = ADT_info, aes(x = intime, xend = outtime, y = "ADT", 
+                                    yend = "ADT", color = ADT_Type, 
+                                    ), linewidth = ifelse(ADT_info$ADT_Type == "ICU/CCU", 5, 2)) +
+  scale_color_manual(values = c("Emergency Department" =  "red", 
+                                "Medicine" = "green", "ICU/CCU" = "purple", 
+                                "Neuro" = "skyblue")) +
+  labs(color = "Care Unit") +
+  theme(legend.position = "bottom")
 
+Lab_plot <- ADT_plot + 
+  geom_point(data = lab_info, aes(x = charttime, y = "Lab"), 
+             size = 5, shape = "+")
 
+Procedure_plot <- Lab_plot + 
+  geom_point(data = procedure_info, aes(x = chartdate, y = "Procedure", shape = short_title), 
+             size = 3) +
+  labs(shape = "Procedure") +
+  theme(legend.position = "bottom")
+
+plot(Procedure_plot)
 ```
 ### Q1.2 ICU stays
 

@@ -87,13 +87,12 @@ diagnose_info <- read_csv("~/mimic/hosp/diagnoses_icd.csv.gz") |>
 ADT_info <- read_csv("~/mimic/hosp/transfers.csv.gz") |>
   filter(subject_id == patient_id) |>
   select(subject_id, hadm_id, intime, outtime, eventtype, careunit) |>
+  filter(eventtype != "discharge") |>
   arrange(intime) |>
-  mutate(ADT_Type = careunit) |>
-  mutate(ADT_Type = ifelse(ADT_Type %in% c("Coronary Care Unit (CCU)", 
-                           "Neuro Surgical Intensive Care Unit (Neuro SICU)"), 
-                           "ICU/CCU", ADT_Type)) |>
-  mutate(ADT_Type = ifelse(ADT_Type %in% c("Neuro Intermediate"), "Neuro", 
-                           ADT_Type))
+  distinct()
+
+  #mutate(ADT_Type = ifelse(ADT_Type %in% c("Coronary Care Unit (CCU)", "Neuro Surgical Intensive Care Unit (Neuro SICU)"), "ICU/CCU", ADT_Type)) |>
+  #mutate(ADT_Type = ifelse(ADT_Type %in% c("Neuro Intermediate"), "Neuro",  ADT_Type))
 
 
 lab_info <- labevents_data |>
@@ -139,21 +138,20 @@ subtitle_text <- sprintf("%s\n%s\n%s", top3_text[1], top3_text[2], top3_text[3])
 empty_plot <- ggplot() + 
   geom_blank() +
   scale_y_discrete(limits = c("Procedure", "Lab", "ADT")) +
-  labs(x = "Calendar Time", title = title_text, subtitle = subtitle_text) +
+  labs(x = "Calendar Time", title = title_text, 
+       subtitle = tolower(subtitle_text)) +
   theme_bw()
 
 ADT_plot <- empty_plot + 
   geom_segment(data = ADT_info, aes(x = intime, xend = outtime, y = "ADT", 
-                                    yend = "ADT", color = ADT_Type, 
+                                    yend = "ADT", color = careunit, 
                                     ), 
-               linewidth = ifelse(ADT_info$ADT_Type == "ICU/CCU", 8, 3)) +
-  scale_color_manual(values = c("Emergency Department" =  "red", 
-                                "Medicine" = "springgreen", 
-                                "ICU/CCU" = "violet", 
-                                "Neuro" = "orange", 
-                                "Medicine/Cardiology" = "skyblue")) +
+               linewidth = ifelse(str_detect(ADT_info$careunit, "CCU") | 
+                                    str_detect(ADT_info$careunit, "ICU"), 
+                                  8, 3)) +
+  #scale_color_manual(values = c("Emergency Department" =  "red", "Medicine" = "springgreen", "ICU/CCU" = "violet", "Neuro" = "orange", "Medicine/Cardiology" = "skyblue")) +
   labs(color = "Care Unit") +
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom", legend.box = "vertical")
 
 Lab_plot <- ADT_plot + 
   geom_point(data = lab_info, aes(x = charttime, y = "Lab"), 
@@ -161,7 +159,7 @@ Lab_plot <- ADT_plot +
 
 Procedure_plot <- Lab_plot + 
   geom_point(data = procedure_info, aes(x = chartdate, y = "Procedure", 
-                                        shape = short_title), size = 3) +
+                                        shape = short_title), size = 5) +
   labs(shape = "Procedure", y = "") +
   theme(legend.position = "bottom", legend.box = "vertical")
 

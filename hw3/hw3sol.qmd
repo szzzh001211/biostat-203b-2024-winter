@@ -110,8 +110,8 @@ procedure_info <- read_csv("~/mimic/hosp/procedures_icd.csv.gz") |>
   left_join(procedure_code_info, by = c("icd_code" = "icd_code")) |>
   select(-icd_version) |>
   arrange(chartdate) |>
-  mutate(short_title = str_split(long_title, "\\s+") %>% sapply(function(x) 
-    paste(x[1:3], collapse = " "))) |> 
+  mutate(short_title = str_split(long_title, ",") %>% sapply(function(x) 
+    x[1])) |> 
   distinct()
 ```
 
@@ -151,7 +151,8 @@ ADT_plot <- empty_plot +
                                   8, 3)) +
   #scale_color_manual(values = c("Emergency Department" =  "red", "Medicine" = "springgreen", "ICU/CCU" = "violet", "Neuro" = "orange", "Medicine/Cardiology" = "skyblue")) +
   labs(color = "Care Unit") +
-  theme(legend.position = "bottom", legend.box = "vertical")
+  theme(legend.position = "bottom", legend.box = "vertical", 
+        text = element_text(size = 8))
 
 Lab_plot <- ADT_plot + 
   geom_point(data = lab_info, aes(x = charttime, y = "Lab"), 
@@ -160,13 +161,17 @@ Lab_plot <- ADT_plot +
 Procedure_plot <- Lab_plot + 
   geom_point(data = procedure_info, aes(x = chartdate, y = "Procedure", 
                                         shape = short_title), size = 5) +
+  scale_shape_manual(values = 
+                       seq(1, length(unique(procedure_info$short_title)))) +
   labs(shape = "Procedure", y = "") +
-  theme(legend.position = "bottom", legend.box = "vertical")
+  guides(shape = guide_legend(nrow = 5)) +
+  theme(legend.position = "bottom", legend.box = "vertical", 
+        text = element_text(size = 8))
 
 plot(Procedure_plot)
 ```
 **Answer:** This patient has been admitted to the hospital three times. Each admission results in the top 3 diagnoses. Therefore, for the subtitle, we select one of the admission records and displayed the top 3 diagnoses for that admission. Here we select admission record with `hadm_id` = 21243435 and we only display the first few words of the long title because the long title is too long.\
-For the label of procedure, since the long title is too long, we only display the first three words of the long title. And since the shape palette can deal with a maximum of 6 discrete values in RStudio, we only display the first 6 procedures and the remaining two procedures are labeled with blank labels.
+For the label of procedure, since the long title is too long, we only display the words before the first comma of the long title. We manually set the shape of the procedure to be the total 9 procedures. However, since the shape palette can deal with a maximum of 6 discrete values in RStudio, only the first 6 procedures can be displayed in the figure.
 
 ### Q1.2 ICU stays
 

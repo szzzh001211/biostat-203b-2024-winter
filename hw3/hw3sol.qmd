@@ -80,7 +80,7 @@ diagnose_info <- read_csv("~/mimic/hosp/diagnoses_icd.csv.gz") |>
   filter(subject_id == patient_id) |>
   select(-icd_version) |>
   filter(seq_num <= 3) |>
-  left_join(diagonose_code_info, by = c("icd_code" = "icd_code")) |>
+  left_join(diagonose_code_info, by = "icd_code") |>
   select(-icd_version)
 
 
@@ -107,7 +107,7 @@ procedure_info <- read_csv("~/mimic/hosp/procedures_icd.csv.gz") |>
   filter(subject_id == patient_id) |>
   select(subject_id, hadm_id, chartdate, icd_code) |>
   mutate(chartdate = as.POSIXct(chartdate, format = "%Y-%m-%d %H:%M:%S")) |>
-  left_join(procedure_code_info, by = c("icd_code" = "icd_code")) |>
+  left_join(procedure_code_info, by = "icd_code") |>
   select(-icd_version) |>
   arrange(chartdate) |>
   mutate(short_title = str_split(long_title, ",") %>% sapply(function(x) 
@@ -175,11 +175,60 @@ For the label of procedure, since the long title is too long, we only display th
 
 ### Q1.2 ICU stays
 
-ICU stays are a subset of ADT history. This figure shows the vitals of the patient `10001217` during ICU stays. The x-axis is the calendar time, and the y-axis is the value of the vital. The color of the line represents the type of vital. The facet grid shows the abbreviation of the vital and the stay ID.
+ICU stays are a subset of ADT history. This figure shows the vitals of the patient `10001217` during ICU stays. The x-axis is the calendar time, and the y-axis is the value of the vital. The color of the line represents the type of vital. The facet grid shows the abbreviation of the vital and the stay ID. 
 
 ![](10001217_icu.png)
 
 Do a similar visualization for the patient `10013310`.
+```{r,eval=TRUE}
+item_icu <- read_csv("~/mimic/icu/d_items.csv.gz")
+```
+
+```{bash}
+#| eval: false
+zcat < ~/mimic/icu/chartevents.csv.gz | \
+awk -F, 'BEGIN{OFS=","} {
+if ($7 == 220045 || $7 == 220180 || $7 == 220179 || $7 == 220210 || 
+$7 == 223761) print}' | gzip > ./chartevents_filtered.csv.gz
+```
+
+```{r,eval=TRUE}
+patient_id <- 10013310
+
+item_icu_info <- item_icu |>
+  filter(itemid %in% c(220045, 220180, 220179, 220210, 223761)) |>
+  select(itemid, abbreviation) |>
+  distinct()
+
+chartevents_info <- read_csv("./chartevents_filtered.csv.gz", col_names = 
+                                   c('subject_id', 'hadm_id', 
+                                     'stay_id', 'caregiver_id', 
+                                     'charttime', 'storetime', 
+                                     'itemid', 'value', 
+                                     'valuenum', 'valueuom', 'warning')) |>
+  filter(subject_id == patient_id) |>
+  select(subject_id, stay_id, itemid, charttime, value) |>
+  left_join(item_icu_info, by = "itemid")
+
+title_text <- sprintf("Patient %d ICU stays - Vitals", 
+                      chartevents_info$subject_id)
+
+icu_plot <- ggplot(chartevents_info, aes(x = charttime, y = value, color = abbreviation)) +
+  geom_point(size = 1) +
+  geom_line() +
+  labs(title = title_text,
+       x = "",
+       y = "") +
+  facet_grid(rows = vars(abbreviation), cols = vars(stay_id), scales = "free") +
+  theme_light() +
+  theme(legend.position = "none") +
+  scale_x_datetime(date_labels = "%b %d %H:%M") +
+  guides(x = guide_axis(n.dodge = 2))
+
+plot(icu_plot)
+
+
+```
 
 ## Q2. ICU stays
 
@@ -300,18 +349,29 @@ ggplot(patients_tble, aes(x = gender, fill = gender)) +
             vjust=-0.5, color='black', size=3) +
   labs(title = "Distribution of Gender",
        x = "Gender",
-       y = "Count")
+       y = "Count") + 
+  theme_bw()
 ```
 **Answer:** The number of female patients is slightly higher than the number of male patients. 158,553 vs 141,159.
 
 ```{r,eval=TRUE}
 ggplot(patients_tble, aes(x = anchor_age)) +
-  geom_histogram(binwidth = 5, fill = "red", color = "black", alpha = 0.7) +
+  geom_histogram(binwidth = 5, fill = "red", color = "white", alpha = 0.7) +
   labs(title = "Distribution of Anchor_Age",
        x = "Anchor_Age",
-       y = "Count")
+       y = "Count") + 
+  theme_bw()
 ```
-**Answer:** The distribution of `anchor_age` is shown in the graph above. The number of patients is highest in the youngest age group, around 20 years old, and the number of patients firstly decreases and then increases as the age increases. There is another peak in the age group 55. And then the number of patients gradually decreases as the age increases.
+
+```{r,eval=TRUE}
+ggplot(patients_tble, aes(x = gender, y = anchor_age, fill = gender)) +
+  geom_violin(color = "white") +
+  labs(title = "Anchor Age Distribution by Gender",
+       x = "Gender",
+       y = "Anchor Age") +
+  scale_fill_manual(values = c("purple", "orange"))
+```
+**Answer:** The distribution of `anchor_age` is shown in the graph above. The number of patients is highest in the youngest age group, around 20 years old, and the number of patients firstly decreases and then increases as the age increases. There is another peak in the age group 55. And then the number of patients gradually decreases as the age increases. Next, we compare `anchor_age` in different gender groups. The distribution of `anchor_age` in different gender groups are almost the same. The largest number of age groups for both gender groups are around 20 years old and then the number of people decreases when they are 40 years old. There is a slight increase in numbers around 60. Finally, as age increases, the number of people decreases for both gender groups.
 
 ## Q5. Lab results
 
@@ -358,7 +418,7 @@ labevents_tble <- arrow::open_dataset("./labevents_pq",
   dplyr::select(subject_id, itemid, valuenum, storetime) |>
   arrange(subject_id, itemid) |>
   dplyr::collect() |>
-  semi_join(icustays_tble, by = c("subject_id")) |>
+  semi_join(icustays_tble_subset, by = c("subject_id")) |>
   left_join(d_item_subset, by = c("itemid")) |>
   left_join(icustays_tble_subset, by = c("subject_id")) |>
   filter(storetime < intime) |>

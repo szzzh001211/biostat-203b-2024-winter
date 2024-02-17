@@ -565,26 +565,31 @@ plot(f)
 
 ```{r,eval=TRUE}
 g1 <- ggplot(mimic_icu_cohort, aes(x = heart_rate, y = los)) +
-  geom_point(size = 0.5)
+  geom_point(size = 0.5) +
+  xlim(0, 250)
 
 g2 <- ggplot(mimic_icu_cohort, aes(x = non_invasive_blood_pressure_systolic, y = los)) +
-  geom_point(size = 0.5)
+  geom_point(size = 0.5) +
+  xlim(0, 300)
 
 g3 <- ggplot(mimic_icu_cohort, aes(x = non_invasive_blood_pressure_diastolic, y = los)) +
-  geom_point(size = 0.5)
+  geom_point(size = 0.5) +
+  xlim(0, 220)
 
 g4 <- ggplot(mimic_icu_cohort, aes(x = respiratory_rate, y = los)) +
-  geom_point(size = 0.5)
+  geom_point(size = 0.5) +
+  xlim(0, 100)
 
 g5 <- ggplot(mimic_icu_cohort, aes(x = temperature_fahrenheit, y = los)) +
-  geom_point(size = 0.5)
+  geom_point(size = 0.5) +
+  xlim(0, 110)
 
 
-g <- arrangeGrob(g1, g2, g3, g4, g5, ncol = 1, nrow = 5)
+g <- grid.arrange(g1, g2, g3, g4, g5, ncol = 1, nrow = 5)
 ggtitle(g, "Length of ICU stay vs First vital measurements within the ICU stay")
 plot(g)
 ```
-**Comment:** The distributions of `heart_rate`, `non_invasive_blood_pressure_systolic`, `non_invasive_blood_pressure_diastolic`, `respiratory_rate`, and `temperature_fahrenheit` are relatively uniform. As the values of these measurements increase, the length of stay tends to decrease.
+**Comment:** The distributions of `heart_rate`, `non_invasive_blood_pressure_systolic`, `non_invasive_blood_pressure_diastolic`, and `respiratory_rate` are almost uniform. `temperature_fahrenheit` around 35 tends to correlate with slightly shorter lengths of stay. Most values fall within the range of 90 to 105 Fahrenheit. Within this range, as `temperature_fahrenheit` increases, the length of stay tends to initially increase before decreasing. The longest lengths of stay occur around a temperature of approximately 98 Fahrenheit, which is the normal body temperature.
 
 ```{r,eval=TRUE}
 h <- ggplot(mimic_icu_cohort, aes(los, fill = first_careunit)) +
@@ -592,8 +597,6 @@ h <- ggplot(mimic_icu_cohort, aes(los, fill = first_careunit)) +
   labs(title = "Length of ICU stay vs First ICU unit")
 plot(h)
 ```
-**Comment:** Overall, the length of ICU stay tends to be relatively short. As the length of stay increases, the frequency decreases gradually. `Neuro Intermediate`, `Neuro Stepdown`, and `Neuro SICU` have significantly shorter lengths of stay across various durations compared to others. The distributions of the remaining six are relatively uniform, with MICU having slightly more than the others.
-
-
+**Comment:** Overall, the length of ICU stay tends to be relatively short. As the length of stay increases, the frequency decreases gradually. `Neuro Intermediate`, `Neuro Stepdown`, and `Neuro SICU` have significantly shorter lengths of stay in all lengths of stay compared to others. The remaining six categories have relatively uniform quantities, with `MICU` having slightly more than the other five.
 
 

@@ -52,16 +52,19 @@ Hint: We need to pull information from data files `patients.csv.gz`, `admissions
 
 ```{bash}
 #| eval: false
-ln -s /Users/zihengzhang/Downloads/203B/203b-hw/hw2/labevents_parquet ./labevents_pq
+ln -s /Users/zihengzhang/Downloads/203B/203b-hw/hw2/labevents_parquet \
+./labevents_pq
 ```
 
 ```{r,eval=TRUE}
-patient_id <- 10013310
+patient_id <- 10013310 # set patient ID
 
+# find race for that patient
 race_info <- read_csv("~/mimic/hosp/admissions.csv.gz") |>
   filter(subject_id == patient_id) |>
   select(subject_id, race)
 
+# find other personal info for that patient
 personal_info <- read_csv("~/mimic/hosp/patients.csv.gz") |>
   filter(subject_id == patient_id) |>
   select(subject_id, gender, anchor_age) |>
@@ -69,7 +72,7 @@ personal_info <- read_csv("~/mimic/hosp/patients.csv.gz") |>
   left_join(race_info, by = "subject_id") |>
   distinct()
 
-
+# find top 3 diagnoses for that patient in each stay ID
 diagonose_code_info <- read_csv("~/mimic/hosp/d_icd_diagnoses.csv.gz")
 diagnose_info <- read_csv("~/mimic/hosp/diagnoses_icd.csv.gz") |>
   filter(subject_id == patient_id) |>
@@ -78,7 +81,7 @@ diagnose_info <- read_csv("~/mimic/hosp/diagnoses_icd.csv.gz") |>
   left_join(diagonose_code_info, by = "icd_code") |>
   select(-icd_version)
 
-
+# find ADT info for that patient
 ADT_info <- read_csv("~/mimic/hosp/transfers.csv.gz") |>
   filter(subject_id == patient_id) |>
   select(subject_id, hadm_id, intime, outtime, eventtype, careunit) |>
@@ -86,17 +89,14 @@ ADT_info <- read_csv("~/mimic/hosp/transfers.csv.gz") |>
   arrange(intime) |>
   distinct()
 
-  #mutate(ADT_Type = ifelse(ADT_Type %in% c("Coronary Care Unit (CCU)", "Neuro Surgical Intensive Care Unit (Neuro SICU)"), "ICU/CCU", ADT_Type)) |>
-  #mutate(ADT_Type = ifelse(ADT_Type %in% c("Neuro Intermediate"), "Neuro",  ADT_Type))
-
-
-lab_info <- arrow::open_dataset("./labevents_pq", format = "parquet") |>
+# find lab info for that patient
+lab_info <- open_dataset("./labevents_pq", format = "parquet") |>
   filter(subject_id == patient_id) |>
   select(subject_id, hadm_id, charttime) |>
   collect() |>
   distinct()
   
-
+# find procedure info for that patient
 procedure_code_info <- read_csv("~/mimic/hosp/d_icd_procedures.csv.gz")
 procedure_info <- read_csv("~/mimic/hosp/procedures_icd.csv.gz") |>
   filter(subject_id == patient_id) |>
@@ -105,12 +105,14 @@ procedure_info <- read_csv("~/mimic/hosp/procedures_icd.csv.gz") |>
   left_join(procedure_code_info, by = "icd_code") |>
   select(-icd_version) |>
   arrange(chartdate) |>
+  # split long title and only keep the first part
   mutate(short_title = str_split(long_title, ",") %>% sapply(function(x) 
     x[1])) |> 
   distinct()
 ```
 
 ```{r,eval=TRUE}
+# combine personal info into required format
 title_text <- sprintf("Patient %d, %s, %d years old, %s", 
                       personal_info$subject_id, personal_info$gender, 
                       personal_info$age, tolower(personal_info$race))
@@ -121,7 +123,7 @@ top3_text <- diagnose_info |>
   mutate(first_five_words = str_split(long_title, "\\s+") %>% 
     sapply(function(x) {
       if (length(x) < 5) {
-        paste(x, collapse = " ")
+        paste(x, collapse = " ") # in case some diagnosis has less than 5 words
         } else {
           paste(x[1:5], collapse = " ")
           }
@@ -130,6 +132,7 @@ top3_text <- diagnose_info |>
 
 subtitle_text <- sprintf("%s\n%s\n%s", top3_text[1], top3_text[2], top3_text[3])
 
+# create the plot and y-axis
 empty_plot <- ggplot() + 
   geom_blank() +
   scale_y_discrete(limits = c("Procedure", "Lab", "ADT")) +
@@ -139,12 +142,10 @@ empty_plot <- ggplot() +
 
 ADT_plot <- empty_plot + 
   geom_segment(data = ADT_info, aes(x = intime, xend = outtime, y = "ADT", 
-                                    yend = "ADT", color = careunit, 
-                                    ), 
+                                    yend = "ADT", color = careunit), 
                linewidth = ifelse(str_detect(ADT_info$careunit, "CCU") | 
                                     str_detect(ADT_info$careunit, "ICU"), 
                                   8, 3)) +
-  #scale_color_manual(values = c("Emergency Department" =  "red", "Medicine" = "springgreen", "ICU/CCU" = "violet", "Neuro" = "orange", "Medicine/Cardiology" = "skyblue")) +
   labs(color = "Care Unit") +
   theme(legend.position = "bottom", legend.box = "vertical", 
         text = element_text(size = 8))
@@ -156,6 +157,7 @@ Lab_plot <- ADT_plot +
 Procedure_plot <- Lab_plot + 
   geom_point(data = procedure_info, aes(x = chartdate, y = "Procedure", 
                                         shape = short_title), size = 5) +
+  # set manually the shape of the procedure to be the total 9 procedures
   scale_shape_manual(values = 
                        seq(1, length(unique(procedure_info$short_title)))) +
   labs(shape = "Procedure", y = "") +
@@ -177,7 +179,8 @@ ICU stays are a subset of ADT history. This figure shows the vitals of the patie
 Do a similar visualization for the patient `10013310`.
 ```{bash}
 #| eval: false
-ln -s /Users/zihengzhang/Downloads/203B/203b-hw/hw2/chartevents.parquet ./chartevents_pq
+ln -s /Users/zihengzhang/Downloads/203B/203b-hw/hw2/chartevents.parquet \
+./chartevents_pq
 ```
 
 ```{r,eval=TRUE}
@@ -188,7 +191,7 @@ item_icu_info <- read_csv("~/mimic/icu/d_items.csv.gz") |>
   select(itemid, abbreviation) |>
   distinct()
 
-chartevents_info <- arrow::open_dataset("./chartevents_pq", format = "parquet") |>
+chartevents_info <- open_dataset("./chartevents_pq", format = "parquet") |>
   filter(subject_id == patient_id) |>
   filter(itemid %in% c(220045, 220180, 220179, 220210, 223761)) |>
   select(subject_id, stay_id, itemid, charttime, valuenum) |>
@@ -200,7 +203,8 @@ chartevents_info <- arrow::open_dataset("./chartevents_pq", format = "parquet") 
 title_text <- sprintf("Patient %d ICU stays - Vitals", 
                       chartevents_info$subject_id)
 
-icu_plot <- ggplot(chartevents_info, aes(x = charttime, y = valuenum, color = abbreviation)) +
+icu_plot <- ggplot(chartevents_info, aes(x = charttime, y = valuenum, 
+                                         color = abbreviation)) +
   geom_point(size = 1) +
   geom_line() +
   labs(title = title_text,
@@ -210,7 +214,7 @@ icu_plot <- ggplot(chartevents_info, aes(x = charttime, y = valuenum, color = ab
   theme_light() +
   theme(legend.position = "none") +
   scale_x_datetime(date_labels = "%b %d %H:%M") +
-  guides(x = guide_axis(n.dodge = 2))
+  guides(x = guide_axis(n.dodge = 2)) # to avoid overlapping of x-axis labels
 
 plot(icu_plot)
 
@@ -236,6 +240,7 @@ icustays_tble <- read_csv("~/mimic/icu/icustays.csv.gz")
 
 How many unique `subject_id`? Can a `subject_id` have multiple ICU stays? Summarize the number of ICU stays per `subject_id` by graphs. 
 ```{r,eval=TRUE}
+# calculate the number of unique subject_id
 icustays_tble |> distinct(subject_id) |> count()
 icustays_tble |> count(subject_id) 
 ```
@@ -243,8 +248,8 @@ icustays_tble |> count(subject_id)
 
 ```{r,eval=TRUE}
 icustays_tble |> count(subject_id) |> 
-  ggplot(aes(n)) + 
-  geom_bar() + 
+  ggplot() + 
+  geom_bar(mapping = aes(x = n)) + 
   labs(title = "Number of ICU stays per subject_id") + 
   xlab("ICU Stays") + 
   ylab("Number of subject_id") + 
@@ -287,33 +292,52 @@ admissions_tble |> count(subject_id)
 **Answer:** There are 180733 unique `subject_id`. A `subject_id` can have multiple admissions.
 
 ```{r,eval=TRUE}
-admissions_tble |> count(subject_id) |> ggplot(aes(n)) + geom_bar() + 
-  labs(title = "Number of admissions per subject_id") + xlab("Admissions") + 
-  ylab("Number of subject_id") + theme_bw()
+admissions_tble |> count(subject_id) |> 
+  ggplot() + 
+  geom_bar(mapping = aes(x = n)) + 
+  labs(title = "Number of admissions per subject_id") + 
+  xlab("Admissions") + 
+  ylab("Number of subject_id") + 
+  theme_bw()
 ```
 **Answer:** The number of admissions per `subject_id` is shown in the graph above. Most `subject_id` have 1 admission, and the number of `subject_id` decreases as the number of admissions increases.
 
 ```{r,eval=TRUE}
+# extract the hour from admittime
 admissions_hour <- hour(admissions_tble$admittime) |> as_tibble()
-ggplot(data = admissions_hour, aes(value)) + geom_bar() + 
-  labs(title = "Admission Hour") + xlab("Hour") + ylab("Count") + theme_bw()
+ggplot(data = admissions_hour) + 
+  geom_bar(mapping = aes(x = value)) + 
+  labs(title = "Admission Hour") +
+  xlab("Hour") + 
+  ylab("Count") + 
+  theme_bw()
 ```
 **Answer:** The admission hour is shown in the graph above. It seems there is something unusual. The number of admissions is highest at midnight, gradually decreasing over time. However, there is a sudden increase in admissions at 7AM. Then, as time progresses, the number of admissions gradually increases. The evening and night are the peak admission times within a day, with the overall situation being relatively balanced. 
 
 ```{r,eval=TRUE}
+# extract the minute from admittime
 admissions_minute <- minute(admissions_tble$admittime) |> as_tibble()
-ggplot(data = admissions_minute, aes(value)) + geom_bar() + 
-  labs(title = "Admission Minute") + xlab("Minute") + ylab("Count") + theme_bw()
+ggplot(data = admissions_minute) + 
+  geom_bar(mapping = aes(x = value)) + 
+  labs(title = "Admission Minute") + 
+  xlab("Minute") + 
+  ylab("Count") + 
+  theme_bw()
 ```
 **Answer:** The admission minute is shown in the graph above. There are very clear unusual patterns. There are significant peaks in admissions at the top of the hour, 15 minutes past, 30 minutes past, and 45 minutes past the hour. At other times, the number of admissions is relatively evenly distributed.
 
 ```{r,eval=TRUE}
+# calculate the length of hospital stay
 admissions_length <- interval(admissions_tble$dischtime, 
                             admissions_tble$admittime) |> hour() |> as_tibble()
-admissions_length |> ggplot(aes(value)) + geom_bar() + 
-  labs(title = "Length of Admission ") + xlab("Length") + ylab("Count") + theme_bw()
+ggplot(admissions_length) + 
+  geom_bar(mapping = aes(x = value)) + 
+  labs(title = "Length of Admission ") + 
+  xlab("Length") + 
+  ylab("Count") + 
+  theme_bw()
 ```
-**Answer:** The length of hospital stay is shown in the graph above. It appears there is some unusual pattern. The most common length of hospital stay is around 3 hours. As the length of hospital stay increases, the frequency gradually decreases. The least common length is around 14 hours. However, as the length of hospital stay continues to increase, the frequency begins to gradually rise again. The longest length is around 24 hours.
+**Answer:** The length of hospital stay is shown in the graph above. It appears there are some unusual patterns. The most common length of hospital stay is around 3 hours. As the length of hospital stay increases, the frequency gradually decreases. The least common length is around 14 hours. However, as the length of hospital stay continues to increase, the frequency begins to gradually rise again. The longest length is around 24 hours.
 
 ## Q4. `patients` data
 
@@ -336,8 +360,9 @@ Summarize variables `gender` and `anchor_age` by graphics, and explain any patte
 ```{r,eval=TRUE}
 ggplot(patients_tble, aes(x = gender, fill = gender)) +
   geom_bar() +
-  geom_text(stat='count', aes(label=after_stat(count)), 
-            vjust=-0.5, color='black', size=3) +
+  # show the count on top of the bar
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5, 
+            color = "black", size = 3) +
   labs(title = "Distribution of Gender",
        x = "Gender",
        y = "Count") + 
@@ -347,7 +372,7 @@ ggplot(patients_tble, aes(x = gender, fill = gender)) +
 
 ```{r,eval=TRUE}
 ggplot(patients_tble, aes(x = anchor_age)) +
-  geom_histogram(binwidth = 5, fill = "red", color = "white", alpha = 0.7) +
+  geom_histogram(binwidth = 5, color = "black", alpha = 0.7) +
   labs(title = "Distribution of Anchor_Age",
        x = "Anchor_Age",
        y = "Count") + 
@@ -356,11 +381,10 @@ ggplot(patients_tble, aes(x = anchor_age)) +
 
 ```{r,eval=TRUE}
 ggplot(patients_tble, aes(x = gender, y = anchor_age, fill = gender)) +
-  geom_violin(color = "white") +
+  geom_violin() +
   labs(title = "Anchor Age Distribution by Gender",
        x = "Gender",
-       y = "Anchor Age") +
-  scale_fill_manual(values = c("purple", "orange"))
+       y = "Anchor Age")
 ```
 **Answer:** The distribution of `anchor_age` is shown in the graph above. The number of patients is highest in the youngest age group, around 20 years old, and the number of patients firstly decreases and then increases as the age increases. There is another peak in the age group 55. And then the number of patients gradually decreases as the age increases. Next, we compare `anchor_age` in different gender groups. The distribution of `anchor_age` in different gender groups are almost the same. The largest number of age groups for both gender groups are around 20 years old and then the number of people decreases when they are 40 years old. There is a slight increase in numbers around 60. Finally, as age increases, the number of people decreases for both gender groups.
 
@@ -387,29 +411,35 @@ Hint: Use the Parquet format you generated in Homework 2. For reproducibility, m
 
 ```{r,eval=TRUE}
 d_item_subset <- read_csv("~/mimic/hosp/d_labitems.csv.gz") |> 
-  select(itemid, label)
+  select(itemid, label) # we only need itemid and its label name
+
 icustays_tble_subset <- select(icustays_tble, subject_id, stay_id, intime)
 
-labevents_tble <- arrow::open_dataset("./labevents_pq", 
-                                         format = "parquet") |> 
-  dplyr::filter(itemid %in% c(50912, 50971, 50983, 50902, 
-                              50882, 51221, 51301, 50931)) |> 
-  dplyr::select(subject_id, itemid, valuenum, storetime) |>
+labevents_tble <- open_dataset("./labevents_pq", format = "parquet") |> 
+  filter(itemid %in% c(50912, 50971, 50983, 50902, 
+                       50882, 51221, 51301, 50931)) |> 
+  select(subject_id, itemid, valuenum, storetime) |>
   arrange(subject_id, itemid) |>
-  dplyr::collect() |>
+  collect() |>
+  # filter subject_id in labevents to match with icustays_tble
   semi_join(icustays_tble_subset, by = c("subject_id")) |>
+  # combine label names
   left_join(d_item_subset, by = c("itemid")) |>
+  # combine intime and stay_id by subject_id
   left_join(icustays_tble_subset, by = c("subject_id")) |>
+  # filter the measurement before the ICU stay
   filter(storetime < intime) |>
   group_by(subject_id, label, stay_id) |>
+  # sort by storetime and get the last available measurement
+  arrange(storetime, .by_group = TRUE) |>
   summarise(finalvalue = last(valuenum)) |>
   mutate(label = tolower(label)) |>
-  spread(label, finalvalue) |>
+  ungroup() |>
+  # transform the table to wide format
+  pivot_wider(names_from = label, values_from = finalvalue) |>
   rename("wbc" = "white blood cells")
-```
 
-```{r,eval=TRUE}
-head(labevents_tble, 10, width = Inf)
+print(labevents_tble, width = Inf)
 ```
 
 ## Q6. Vitals from charted events
@@ -434,9 +464,12 @@ Hint: Use the Parquet format you generated in Homework 2. For reproducibility, m
 ```{r,eval=TRUE}
 item_icu_subset <- read_csv("~/mimic/icu/d_items.csv.gz") |>
   select(itemid, label) |>
+  # change the label format into required format
   mutate(label = str_replace_all(label, " ", "_")) |>
   mutate(label = tolower(label))
-icustays_tble_subset <- select(icustays_tble, subject_id, stay_id, intime, outtime)
+
+icustays_tble_subset <- select(icustays_tble, subject_id, stay_id, intime, 
+                               outtime)
 
 chartevents_tble <- arrow::open_dataset("./chartevents_pq", 
                                          format = "parquet") |> 
@@ -448,21 +481,23 @@ chartevents_tble <- arrow::open_dataset("./chartevents_pq",
   left_join(item_icu_subset, by = c("itemid")) |>
   left_join(icustays_tble_subset, by = c("subject_id")) |>
   filter(charttime >= intime & charttime <= outtime) |>
-  arrange(subject_id, label, charttime) |>
   group_by(subject_id, label, stay_id) |>
+  # sort by charttime and get the first available measurement
+  arrange(charttime, .by_group = TRUE) |>
   summarise(firstvalue = first(valuenum)) |>
-  spread(label, firstvalue)
+  ungroup() |>
+  pivot_wider(names_from = label, values_from = firstvalue)
 
+
+# change the fourth and fifth column order to match the screenshot 
 temp <- chartevents_tble[, 4]
 chartevents_tble[, 4] <- chartevents_tble[, 5]
 chartevents_tble[, 5] <- temp
 temp_colname <- colnames(chartevents_tble)[4]
 colnames(chartevents_tble)[4] <- colnames(chartevents_tble)[5]
 colnames(chartevents_tble)[5] <- temp_colname
-```
 
-```{r,eval=TRUE}
-head(chartevents_tble, 10, width = Inf)
+print(chartevents_tble, width = Inf)
 ```
 
 ## Q7. Putting things together
@@ -478,6 +513,7 @@ Let us create a tibble `mimic_icu_cohort` for all ICU stays, where rows are all 
 The final `mimic_icu_cohort` should have one row per ICU stay and columns for each variable.
 
 ![](mimic_icu_cohort.png)
+**Answer:** `anchor_age` is age at the `anchor_year` so we use `year(intime) - anchor_year` to calculate the age difference between the year of `intime` and `anchor_year` and then add it to `anchor_age` to get the age at `intime`.
 ```{r,eval=TRUE}
 mimic_icu_cohort <- icustays_tble |>
   left_join(admissions_tble, by = c("subject_id", "hadm_id")) |>

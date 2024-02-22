@@ -1,7 +1,7 @@
 ---
 title: "Biostat 203B Homework 3"
 subtitle: "Due Feb 23 @ 11:59PM"
-author: "Your Name and UID"
+author: "Ziheng Zhang_606300061"
 format:
   html:
     theme: cosmo
@@ -294,11 +294,13 @@ admissions_tble |> count(subject_id)
 ```{r,eval=TRUE}
 admissions_tble |> count(subject_id) |> 
   ggplot() + 
-  geom_bar(mapping = aes(x = n)) + 
-  labs(title = "Number of admissions per subject_id") + 
-  xlab("Admissions") + 
-  ylab("Number of subject_id") + 
-  theme_bw()
+  geom_histogram(mapping = aes(x = n), binwidth = 5, fill = "salmon", 
+                 color = "black") + 
+  labs(title = "Admissions vs Subject ID") + 
+  xlab("Number of Admissions") + 
+  ylab("Count") + 
+  theme_bw() +
+  scale_y_continuous(labels = scales::comma)
 ```
 **Answer:** The number of admissions per `subject_id` is shown in the graph above. Most `subject_id` have 1 admission, and the number of `subject_id` decreases as the number of admissions increases.
 
@@ -307,7 +309,7 @@ admissions_tble |> count(subject_id) |>
 admissions_hour <- hour(admissions_tble$admittime) |> as_tibble()
 ggplot(data = admissions_hour) + 
   geom_bar(mapping = aes(x = value)) + 
-  labs(title = "Admission Hour") +
+  labs(title = "Distribution of Admission Hour") +
   xlab("Hour") + 
   ylab("Count") + 
   theme_bw()
@@ -319,7 +321,7 @@ ggplot(data = admissions_hour) +
 admissions_minute <- minute(admissions_tble$admittime) |> as_tibble()
 ggplot(data = admissions_minute) + 
   geom_bar(mapping = aes(x = value)) + 
-  labs(title = "Admission Minute") + 
+  labs(title = "Distribution of Admission Minute") + 
   xlab("Minute") + 
   ylab("Count") + 
   theme_bw()
@@ -332,7 +334,7 @@ admissions_length <- interval(admissions_tble$dischtime,
                             admissions_tble$admittime) |> hour() |> as_tibble()
 ggplot(admissions_length) + 
   geom_bar(mapping = aes(x = value)) + 
-  labs(title = "Length of Admission ") + 
+  labs(title = "Distribution of Length of Admission") + 
   xlab("Length") + 
   ylab("Count") + 
   theme_bw()
@@ -535,104 +537,156 @@ Summarize the following information about the ICU stay cohort `mimic_icu_cohort`
 - Length of ICU stay `los` vs the average vital measurements within the first hour of ICU stay
 
 - Length of ICU stay `los` vs first ICU unit
+
 ```{r,eval=TRUE}
-b <- ggplot(mimic_icu_cohort, aes(los, fill = insurance)) +
-  geom_histogram()
-  labs(title = "Length of ICU stay vs Insurance")
-plot(b)
+summary_by_race <- mimic_icu_cohort |>
+  group_by(race) |>
+  summarise(
+    mean_los = mean(los),
+    sd_los = sd(los),
+    median_los = median(los),
+    min_los = min(los),
+    max_los = max(los)
+  )
+print(summary_by_race, width = Inf)
+
+ggplot(summary_by_race, aes(x = race, y = mean_los)) +
+  geom_bar(stat = "identity", fill = "salmon", width = 0.5) +
+  labs(title = "Mean ICU Length of Stay by Race", x = "Race", 
+       y = "Mean Length of Stay") +
+  coord_flip() +
+  theme_bw()
+``` 
+**Comment:** The mean lengths of ICU stay for all `race` groups are more than 2 days. The `AMERICAN INDIAN/ALASKA NATIVE` group has the highest mean length of stay, which is around 4.5 days, while the `HISPANIC/LATINO - MEXICAN` group has the lowest mean length of stay, which is more than 2.5 days.
+
+```{r,eval=TRUE}
+ggplot(mimic_icu_cohort, aes(los, fill = insurance)) + 
+  geom_histogram(color = "black", ) +
+  facet_wrap(~insurance) +
+  labs(title = "Length of ICU Stay vs Insurance", x = "Length of Stay") +
+  theme_bw()
 ```
-**Comment:** Overall, the length of ICU stay tends to be relatively short. As the length of stay increases, the frequency decreases gradually. The number of people using `other` insurances and `Medicare` insurance remains the same in almost all lengths of stay. In contrast, the number of people using `Medicaid` is very small, accounting for only about one-tenth of the total of the other two types combined.
+**Comment:** Overall, the length of ICU stay in all `insurance` types tends to be relatively short and the distributions are all right-skewed. As the length of stay increases, the frequency decreases dramatically. The number of people using `other` insurances is the largest and that for `Medicare` insurance is almost the same, just a little bit smaller in the shortest `los` group. The number of people using `Medicaid` insurance is the smallest in all lengths of stay, accounting for only about one-tenth of the total of the other two types combined.
 
 
 ```{r,eval=TRUE}
-c <- ggplot(mimic_icu_cohort, aes(los, fill = marital_status)) +
-  geom_histogram()
-  labs(title = "Length of ICU stay vs Martial Status")
-plot(c)
+ggplot(mimic_icu_cohort, aes(los, fill = marital_status)) + 
+  geom_histogram(color = "black") +
+  facet_wrap(~marital_status) +
+  labs(title = "Length of ICU Stay vs Martial Status", x = "Length of Stay") +
+  theme_bw()
 ```
-**Comment:** Overall, the length of ICU stay tends to be relatively short. As the length of stay increases, the frequency decreases gradually. The number of people who are `married` marital status remains the largest in almost all lengths of stay. In contrast, the number of people who are `divorced` and `widowed` marital status is small.
+**Comment:** Overall, the length of ICU stay in all marital statuses tends to be relatively short and the distributions are all right-skewed. As the length of stay increases, the frequency decreases dramatically. The number of people who are `married` marital status remains the largest in almost all lengths of stay. In contrast, the number of people who are `divorced` and `widowed` marital status is small.
 
 ```{r,eval=TRUE}
-d <- ggplot(mimic_icu_cohort, aes(los, fill = gender)) +
-  geom_histogram()
-  labs(title = "Length of ICU stay vs Gender")
-plot(d)
+ggplot(mimic_icu_cohort, aes(los, fill = gender)) +
+  geom_histogram(color = "black") +
+  facet_wrap(~gender) +
+  labs(title = "Length of ICU Stay vs Gender", x = "Length of Stay") +
+  theme_bw()
 ```
-**Comment:** Overall, the length of ICU stay tends to be relatively short. As the length of stay increases, the frequency decreases gradually. The number of `female` and `male` remains almost the same in all lengths of stay.
+**Comment:** Overall, the length of ICU stay in all `gender` types tends to be relatively short and the distributions are all right-skewed. As the length of stay increases, the frequency decreases dramatically. The number of `female` is less than that for `male` remains in all length of stay groups.
 
 ```{r,eval=TRUE}
-e <- ggplot(mimic_icu_cohort, aes(x = age_at_intime, y = los)) +
-  geom_point() +
-  labs(title = "Length of ICU stay vs Age at intime")
-plot(e)
+ggplot(mimic_icu_cohort, aes(x = age_at_intime, y = los)) +
+  geom_point(alpha = 0.3) +
+  labs(title = "Length of ICU Stay vs Age at Intime", x = "Length of Stay") +
+  theme_bw()
 ```
-**Comment:** The length of ICU stay tends to be relatively short for all ages. As the age increases, the length of stay tends to increase and the length of stay seems to be longer for people aged 65-80.
+**Comment:** The length of ICU stay tends to be relatively short for all ages and the distributions are all a little left-skewed. As the age increases, the length of stay tends to increase and the length of stay seems to be longer for people aged 65-80.
 
 ```{r,eval=TRUE}
 f1 <- ggplot(mimic_icu_cohort, aes(x = bicarbonate, y = los)) +
-  geom_point(size = 0.5)
+  geom_point(size = 0.5, alpha = 0.3) +
+  labs(y = "Length of Stay")
 
 f2 <- ggplot(mimic_icu_cohort, aes(x = chloride, y = los)) +
-  geom_point(size = 0.5)
+  geom_point(size = 0.5, alpha = 0.3) +
+  labs(y = "Length of Stay")
 
 f3 <- ggplot(mimic_icu_cohort, aes(x = creatinine, y = los)) +
-  geom_point(size = 0.5)
+  geom_point(size = 0.5, alpha = 0.3) +
+  labs(y = "Length of Stay")
 
 f4 <- ggplot(mimic_icu_cohort, aes(x = glucose, y = los)) +
-  geom_point(size = 0.5)
+  geom_point(size = 0.5, alpha = 0.3) +
+  labs(y = "Length of Stay")
 
 f5 <- ggplot(mimic_icu_cohort, aes(x = hematocrit, y = los)) +
-  geom_point(size = 0.5)
+  geom_point(size = 0.5, alpha = 0.3)
 
 f6 <- ggplot(mimic_icu_cohort, aes(x = potassium, y = los)) +
-  geom_point(size = 0.5)
+  geom_point(size = 0.5, alpha = 0.3) +
+  labs(y = "Length of Stay")
 
 f7 <- ggplot(mimic_icu_cohort, aes(x = sodium, y = los)) +
-  geom_point(size = 0.5)
+  geom_point(size = 0.5, alpha = 0.3) +
+  labs(y = "Length of Stay")
 
 f8 <- ggplot(mimic_icu_cohort, aes(x = wbc, y = los)) +
-  geom_point(size = 0.5)
+  geom_point(size = 0.5, alpha = 0.3) +
+  labs(y = "Length of Stay")
 
-f <- grid.arrange(f1, f2, f3, f4, f5, f6, f7, f8, ncol = 2, nrow = 4)
-ggtitle(f, "Length of ICU stay vs Last available lab measurements before ICU stay")
-plot(f)
+f <- grid.arrange(f1, f2, f3, f4, f5, f6, f7, f8, ncol = 2, nrow = 4, 
+                  top = "Length of ICU Stay vs 
+                  Last Available Lab Measurements before ICU Stay")
 ```
 **Comment:** `Bicarbonate` and `hematocrit` exhibit relatively uniform distributions of length of ICU stay. Meanwhile, distributions of `creatinine`, `glucose`, and `wbc` are relatively concentrated in regions where measurement values are smaller, and as these values increase, length of stay tends to decrease. The distributions of `Chloride`, `potassium`, and `sodium` are similar to normal distribution.
 
 ```{r,eval=TRUE}
 g1 <- ggplot(mimic_icu_cohort, aes(x = heart_rate, y = los)) +
-  geom_point(size = 0.5) +
-  xlim(0, 250)
+  geom_point(size = 0.5, alpha = 0.3) +
+  xlim(0, 250) +
+  labs(y = "Length of Stay")
 
-g2 <- ggplot(mimic_icu_cohort, aes(x = non_invasive_blood_pressure_systolic, y = los)) +
-  geom_point(size = 0.5) +
-  xlim(0, 300)
+g2 <- ggplot(mimic_icu_cohort, aes(x = non_invasive_blood_pressure_systolic, 
+                                   y = los)) +
+  geom_point(size = 0.5, alpha = 0.3) +
+  xlim(0, 300) +
+  labs(y = "Length of Stay")
 
-g3 <- ggplot(mimic_icu_cohort, aes(x = non_invasive_blood_pressure_diastolic, y = los)) +
-  geom_point(size = 0.5) +
-  xlim(0, 220)
+g3 <- ggplot(mimic_icu_cohort, aes(x = non_invasive_blood_pressure_diastolic, 
+                                   y = los)) +
+  geom_point(size = 0.5, alpha = 0.3) +
+  xlim(0, 220) +
+  labs(y = "Length of Stay")
 
 g4 <- ggplot(mimic_icu_cohort, aes(x = respiratory_rate, y = los)) +
-  geom_point(size = 0.5) +
-  xlim(0, 100)
+  geom_point(size = 0.5, alpha = 0.3) +
+  xlim(0, 100) +
+  labs(y = "Length of Stay")
 
 g5 <- ggplot(mimic_icu_cohort, aes(x = temperature_fahrenheit, y = los)) +
-  geom_point(size = 0.5) +
-  xlim(0, 110)
+  geom_point(size = 0.5, alpha = 0.3) +
+  xlim(0, 110) +
+  labs(y = "Length of Stay")
 
 
-g <- grid.arrange(g1, g2, g3, g4, g5, ncol = 1, nrow = 5)
-ggtitle(g, "Length of ICU stay vs First vital measurements within the ICU stay")
-plot(g)
+g <- grid.arrange(g1, g2, g3, g4, g5, ncol = 2, top = "Length of ICU Stay vs 
+                  First Vital Measurements within the ICU Stay")
+
 ```
 **Comment:** The distributions of `heart_rate`, `non_invasive_blood_pressure_systolic`, `non_invasive_blood_pressure_diastolic`, and `respiratory_rate` are almost uniform. `temperature_fahrenheit` around 35 tends to correlate with slightly shorter lengths of stay. Most values fall within the range of 90 to 105 Fahrenheit. Within this range, as `temperature_fahrenheit` increases, the length of stay tends to initially increase before decreasing. The longest lengths of stay occur around a temperature of approximately 98 Fahrenheit, which is the normal body temperature.
 
 ```{r,eval=TRUE}
-h <- ggplot(mimic_icu_cohort, aes(los, fill = first_careunit)) +
-  geom_histogram()
-  labs(title = "Length of ICU stay vs First ICU unit")
-plot(h)
+summary_by_care <- mimic_icu_cohort %>%
+  group_by(first_careunit) %>%
+  summarise(
+    mean_los = mean(los),
+    sd_los = sd(los),
+    median_los = median(los),
+    min_los = min(los),
+    max_los = max(los)
+  )
+print(summary_by_care, width = Inf)
+
+ggplot(summary_by_care, aes(x = first_careunit, y = mean_los)) +
+  geom_bar(stat = "identity", fill = "salmon", width = 0.5) +
+  labs(title = "Mean ICU Length of Stay by First ICU Unit", 
+       x = "First Careunit", y = "Mean Length of Stay") +
+  coord_flip() +
+  theme_bw()
 ```
-**Comment:** Overall, the length of ICU stay tends to be relatively short. As the length of stay increases, the frequency decreases gradually. `Neuro Intermediate`, `Neuro Stepdown`, and `Neuro SICU` have significantly shorter lengths of stay in all lengths of stay compared to others. The remaining six categories have relatively uniform quantities, with `MICU` having slightly more than the other five.
+**Comment:** The mean lengths of ICU stay for all `first_icu` groups are more than 2 days. The `Neuro Surgical Intensive Care Unit (Neuro SICU)` group has the highest mean length of stay, which is more than 6 days, while the `Neuro Stepdown` group has the lowest mean length of stay, which is around 2.5 days. The remaining seven categories are relatively similar.
 
 

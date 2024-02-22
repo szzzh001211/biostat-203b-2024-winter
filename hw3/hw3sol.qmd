@@ -105,6 +105,7 @@ procedure_info <- read_csv("~/mimic/hosp/procedures_icd.csv.gz") |>
   left_join(procedure_code_info, by = "icd_code") |>
   select(-icd_version) |>
   arrange(chartdate) |>
+  
   # split long title and only keep the first part
   mutate(short_title = str_split(long_title, ",") %>% sapply(function(x) 
     x[1])) |> 
@@ -157,6 +158,7 @@ Lab_plot <- ADT_plot +
 Procedure_plot <- Lab_plot + 
   geom_point(data = procedure_info, aes(x = chartdate, y = "Procedure", 
                                         shape = short_title), size = 5) +
+  
   # set manually the shape of the procedure to be the total 9 procedures
   scale_shape_manual(values = 
                        seq(1, length(unique(procedure_info$short_title)))) +
@@ -167,8 +169,8 @@ Procedure_plot <- Lab_plot +
 
 plot(Procedure_plot)
 ```
-**Answer:** This patient has been admitted to the hospital three times. Each admission results in the top 3 diagnoses. Therefore, for the subtitle, we select one of the admission records and displayed the top 3 diagnoses for that admission. Here we select admission record with `hadm_id` = 21243435 and we only display the first few words of the long title because the long title is too long.\
-For the label of procedure, since the long title is too long, we only display the words before the first comma of the long title. We manually set the shape of the procedure to be the total 9 procedures and then all of the procedures are displayed in the plot.
+**Answer:** This patient has been admitted to the hospital three times. Each admission results in the top 3 diagnoses. Therefore, for the subtitle, we select one of the admission records and displayed the top 3 diagnoses for that admission. Here we select admission record with the first `hadm_id`, `hadm_id` = 21243435, and we only display the first few words of the long title because the long title is too long.\ 
+For the label of procedure, since the long title is too long, we only display the words before the first comma of the long title. The default setting of the number of labels is 6 and here we manually set the shape of the procedure to be the total 9 procedures and then all of the procedures are displayed in the plot.
 
 ### Q1.2 ICU stays
 
@@ -234,6 +236,7 @@ zcat < ~/mimic/icu/icustays.csv.gz | head
 Import `icustays.csv.gz` as a tibble `icustays_tble`. 
 ```{r,eval=TRUE}
 icustays_tble <- read_csv("~/mimic/icu/icustays.csv.gz")
+print(icustays_tble, width = Inf)
 ```
 
 ### Q2.2 Summary and visualization
@@ -244,7 +247,6 @@ How many unique `subject_id`? Can a `subject_id` have multiple ICU stays? Summar
 icustays_tble |> distinct(subject_id) |> count()
 icustays_tble |> count(subject_id) 
 ```
-**Answer:** There are 50920 unique `subject_id`. A `subject_id` can have multiple ICU stays.
 
 ```{r,eval=TRUE}
 icustays_tble |> count(subject_id) |> 
@@ -255,7 +257,7 @@ icustays_tble |> count(subject_id) |>
   ylab("Number of subject_id") + 
   theme_bw()
 ```
-**Answer:** The number of ICU stays per `subject_id` is shown in the graph above. Most `subject_id` have 1 ICU stay, and the number of `subject_id` decreases as the number of ICU stays increases.
+**Answer:** There are 50920 unique `subject_id`. A `subject_id` can have multiple ICU stays.The number of ICU stays per `subject_id` is shown in the graph above. Most `subject_id` have 1 ICU stay, and most of `subject_id` have the ICU stay less than 10 times. The distribution of the number of ICU stays per `subject_id` is right-skewed and the number of `subject_id` decreases as the number of ICU stays increases. There are also some patients who stay in the ICU for many times, but the number of these patients is very small.
 
 
 ## Q3. `admissions` data
@@ -271,6 +273,7 @@ zcat < ~/mimic/hosp/admissions.csv.gz | head
 Import `admissions.csv.gz` as a tibble `admissions_tble`.
 ```{r,eval=TRUE}
 admissions_tble <- read_csv("~/mimic/hosp/admissions.csv.gz")
+print(admissions_tble, width = Inf)
 ```
 ### Q3.2 Summary and visualization
 
@@ -294,15 +297,14 @@ admissions_tble |> count(subject_id)
 ```{r,eval=TRUE}
 admissions_tble |> count(subject_id) |> 
   ggplot() + 
-  geom_histogram(mapping = aes(x = n), binwidth = 5, fill = "salmon", 
+  geom_histogram(mapping = aes(x = n), binwidth = 3, fill = "salmon", 
                  color = "black") + 
   labs(title = "Admissions vs Subject ID") + 
   xlab("Number of Admissions") + 
   ylab("Count") + 
-  theme_bw() +
-  scale_y_continuous(labels = scales::comma)
+  theme_bw()
 ```
-**Answer:** The number of admissions per `subject_id` is shown in the graph above. Most `subject_id` have 1 admission, and the number of `subject_id` decreases as the number of admissions increases.
+**Answer:** The number of admissions per `subject_id` is shown in the graph above. Many `subject_id` have less than 3 admission times, and most of `subject_id` have the admission less than 30 times. The number of admissions per `subject_id` is right-skewed and the number of `subject_id` decreases as the number of admissions increases. There are also some patients who are admitted for many times, but the number of these patients is very small.
 
 ```{r,eval=TRUE}
 # extract the hour from admittime
@@ -314,7 +316,7 @@ ggplot(data = admissions_hour) +
   ylab("Count") + 
   theme_bw()
 ```
-**Answer:** The admission hour is shown in the graph above. It seems there is something unusual. The number of admissions is highest at midnight, gradually decreasing over time. However, there is a sudden increase in admissions at 7AM. Then, as time progresses, the number of admissions gradually increases. The evening and night are the peak admission times within a day, with the overall situation being relatively balanced. 
+**Answer:** The admission hour is shown in the graph above. It seems there is something unusual. The number of admissions is highest at midnight, gradually decreasing over time. This may be because there is often some emergency situation at midnight. The time interval 1AM-10AM has fewer admissions, except for a sudden increase at 7AM. This may be because many patients will choose to get up the next day and go to the hospital in the early morning. Then, as time progresses, the number of admissions gradually increases. The evening and night are the peak admission times within a day, with the overall situation being relatively uniform. 
 
 ```{r,eval=TRUE}
 # extract the minute from admittime
@@ -326,20 +328,21 @@ ggplot(data = admissions_minute) +
   ylab("Count") + 
   theme_bw()
 ```
-**Answer:** The admission minute is shown in the graph above. There are very clear unusual patterns. There are significant peaks in admissions at the top of the hour, 15 minutes past, 30 minutes past, and 45 minutes past the hour. At other times, the number of admissions is relatively evenly distributed.
+**Answer:** The admission minute is shown in the graph above. There are very clear unusual patterns. There are significant peaks in admissions at the top of the hour, 15 minutes past, 30 minutes past, and 45 minutes past the hour. This may be because the hospital's admission system or the staff usually input admission data on the hour, 15 minutes past, 30 minutes past, and 45 minutes past the hour. At other times, the number of admissions is relatively uniformly distributed.
 
 ```{r,eval=TRUE}
 # calculate the length of hospital stay
-admissions_length <- interval(admissions_tble$dischtime, 
-                            admissions_tble$admittime) |> hour() |> as_tibble()
-ggplot(admissions_length) + 
-  geom_bar(mapping = aes(x = value)) + 
-  labs(title = "Distribution of Length of Admission") + 
+admissions_length <- difftime(admissions_tble$dischtime, 
+                            admissions_tble$admittime, units = "days") |> 
+  as_tibble()
+ggplot(admissions_length, aes(x = value)) + 
+  geom_histogram(binwidth = 5, fill = "salmon", color = "black") + 
+  labs(title = "Distribution of Length of Stay") + 
   xlab("Length") + 
   ylab("Count") + 
   theme_bw()
 ```
-**Answer:** The length of hospital stay is shown in the graph above. It appears there are some unusual patterns. The most common length of hospital stay is around 3 hours. As the length of hospital stay increases, the frequency gradually decreases. The least common length is around 14 hours. However, as the length of hospital stay continues to increase, the frequency begins to gradually rise again. The longest length is around 24 hours.
+**Answer:** The length of hospital stay is shown in the graph above. The length of hospital stay is right-skewed. Most of the patients stay in the hospital for less than 10 days, and the number of patients decreases as the length of hospital stay increases. There are also some patients who stay in the hospital for a long time, but the number of these patients is very small.
 
 ## Q4. `patients` data
 
@@ -354,6 +357,7 @@ zcat < ~/mimic/hosp/patients.csv.gz | head
 Import `patients.csv.gz` (<https://mimic.mit.edu/docs/iv/modules/hosp/patients/>) as a tibble `patients_tble`.
 ```{r,eval=TRUE}
 patients_tble <- read_csv("~/mimic/hosp/patients.csv.gz")
+print(patients_tble, width = Inf)
 ```
 
 ### Q4.2 Summary and visualization
@@ -370,7 +374,6 @@ ggplot(patients_tble, aes(x = gender, fill = gender)) +
        y = "Count") + 
   theme_bw()
 ```
-**Answer:** The number of female patients is slightly higher than the number of male patients. 158,553 vs 141,159.
 
 ```{r,eval=TRUE}
 ggplot(patients_tble, aes(x = anchor_age)) +
@@ -388,7 +391,7 @@ ggplot(patients_tble, aes(x = gender, y = anchor_age, fill = gender)) +
        x = "Gender",
        y = "Anchor Age")
 ```
-**Answer:** The distribution of `anchor_age` is shown in the graph above. The number of patients is highest in the youngest age group, around 20 years old, and the number of patients firstly decreases and then increases as the age increases. There is another peak in the age group 55. And then the number of patients gradually decreases as the age increases. Next, we compare `anchor_age` in different gender groups. The distribution of `anchor_age` in different gender groups are almost the same. The largest number of age groups for both gender groups are around 20 years old and then the number of people decreases when they are 40 years old. There is a slight increase in numbers around 60. Finally, as age increases, the number of people decreases for both gender groups.
+**Answer:** The number of female patients is slightly higher than the number of male patients. 158,553 vs 141,159. The distribution of `anchor_age` is shown in the graph above. The number of patients is highest in the youngest age group, around 20 years old, and the number of patients firstly decreases and then increases as the age increases. There is another peak in the age group 55. And then the number of patients gradually decreases as the age increases. Next, we compare `anchor_age` in different gender groups. The distribution of `anchor_age` in different gender groups are almost the same. The largest number of age groups for both gender groups are around 20 years old and then the number of people decreases when they are 40 years old. There is a slight increase in numbers around 60. Finally, as age increases, the number of people decreases for both gender groups. In the age group 90, there is another small increase, with females exhibiting a larger increase than males.
 
 ## Q5. Lab results
 
@@ -423,20 +426,26 @@ labevents_tble <- open_dataset("./labevents_pq", format = "parquet") |>
   select(subject_id, itemid, valuenum, storetime) |>
   arrange(subject_id, itemid) |>
   collect() |>
+  
   # filter subject_id in labevents to match with icustays_tble
   semi_join(icustays_tble_subset, by = c("subject_id")) |>
+  
   # combine label names
   left_join(d_item_subset, by = c("itemid")) |>
+  
   # combine intime and stay_id by subject_id
   left_join(icustays_tble_subset, by = c("subject_id")) |>
+  
   # filter the measurement before the ICU stay
   filter(storetime < intime) |>
   group_by(subject_id, label, stay_id) |>
+  
   # sort by storetime and get the last available measurement
   arrange(storetime, .by_group = TRUE) |>
   summarise(finalvalue = last(valuenum)) |>
   mutate(label = tolower(label)) |>
   ungroup() |>
+  
   # transform the table to wide format
   pivot_wider(names_from = label, values_from = finalvalue) |>
   rename("wbc" = "white blood cells")
@@ -466,6 +475,7 @@ Hint: Use the Parquet format you generated in Homework 2. For reproducibility, m
 ```{r,eval=TRUE}
 item_icu_subset <- read_csv("~/mimic/icu/d_items.csv.gz") |>
   select(itemid, label) |>
+  
   # change the label format into required format
   mutate(label = str_replace_all(label, " ", "_")) |>
   mutate(label = tolower(label))
@@ -484,6 +494,7 @@ chartevents_tble <- arrow::open_dataset("./chartevents_pq",
   left_join(icustays_tble_subset, by = c("subject_id")) |>
   filter(charttime >= intime & charttime <= outtime) |>
   group_by(subject_id, label, stay_id) |>
+  
   # sort by charttime and get the first available measurement
   arrange(charttime, .by_group = TRUE) |>
   summarise(firstvalue = first(valuenum)) |>
@@ -524,6 +535,7 @@ mimic_icu_cohort <- icustays_tble |>
   left_join(chartevents_tble, by = c("subject_id", "stay_id")) |>
   mutate(age_at_intime = anchor_age + year(intime) - anchor_year) |>
   filter(age_at_intime >= 18)
+print(mimic_icu_cohort, width = Inf)
 ```
 
 ## Q8. Exploratory data analysis (EDA)
@@ -561,7 +573,7 @@ ggplot(summary_by_race, aes(x = race, y = mean_los)) +
 
 ```{r,eval=TRUE}
 ggplot(mimic_icu_cohort, aes(los, fill = insurance)) + 
-  geom_histogram(color = "black", ) +
+  geom_histogram(color = "black", binwidth = 5) +
   facet_wrap(~insurance) +
   labs(title = "Length of ICU Stay vs Insurance", x = "Length of Stay") +
   theme_bw()
@@ -571,7 +583,7 @@ ggplot(mimic_icu_cohort, aes(los, fill = insurance)) +
 
 ```{r,eval=TRUE}
 ggplot(mimic_icu_cohort, aes(los, fill = marital_status)) + 
-  geom_histogram(color = "black") +
+  geom_histogram(color = "black", binwidth = 5) +
   facet_wrap(~marital_status) +
   labs(title = "Length of ICU Stay vs Martial Status", x = "Length of Stay") +
   theme_bw()
@@ -580,7 +592,7 @@ ggplot(mimic_icu_cohort, aes(los, fill = marital_status)) +
 
 ```{r,eval=TRUE}
 ggplot(mimic_icu_cohort, aes(los, fill = gender)) +
-  geom_histogram(color = "black") +
+  geom_histogram(color = "black", binwidth = 5) +
   facet_wrap(~gender) +
   labs(title = "Length of ICU Stay vs Gender", x = "Length of Stay") +
   theme_bw()
@@ -590,83 +602,118 @@ ggplot(mimic_icu_cohort, aes(los, fill = gender)) +
 ```{r,eval=TRUE}
 ggplot(mimic_icu_cohort, aes(x = age_at_intime, y = los)) +
   geom_point(alpha = 0.3) +
-  labs(title = "Length of ICU Stay vs Age at Intime", x = "Length of Stay") +
+  labs(title = "Length of ICU Stay vs Age at Intime", x = "Age at Intime", 
+       y = "Length of Stay") +
   theme_bw()
 ```
-**Comment:** The length of ICU stay tends to be relatively short for all ages and the distributions are all a little left-skewed. As the age increases, the length of stay tends to increase and the length of stay seems to be longer for people aged 65-80.
+**Comment:** The length of ICU stay tends to be relatively short for all ages. As the age increases, the length of stay tends to increase and then decreases. The length of stay seems to be longer for people aged 65-80.
 
 ```{r,eval=TRUE}
 f1 <- ggplot(mimic_icu_cohort, aes(x = bicarbonate, y = los)) +
   geom_point(size = 0.5, alpha = 0.3) +
-  labs(y = "Length of Stay")
+  labs(y = "LOS")
 
 f2 <- ggplot(mimic_icu_cohort, aes(x = chloride, y = los)) +
   geom_point(size = 0.5, alpha = 0.3) +
-  labs(y = "Length of Stay")
+  labs(y = "LOS")
 
 f3 <- ggplot(mimic_icu_cohort, aes(x = creatinine, y = los)) +
   geom_point(size = 0.5, alpha = 0.3) +
-  labs(y = "Length of Stay")
+  labs(y = "LOS")
 
 f4 <- ggplot(mimic_icu_cohort, aes(x = glucose, y = los)) +
   geom_point(size = 0.5, alpha = 0.3) +
-  labs(y = "Length of Stay")
+  labs(y = "LOS")
 
 f5 <- ggplot(mimic_icu_cohort, aes(x = hematocrit, y = los)) +
-  geom_point(size = 0.5, alpha = 0.3)
+  geom_point(size = 0.5, alpha = 0.3) +
+  labs(y = "LOS")
 
 f6 <- ggplot(mimic_icu_cohort, aes(x = potassium, y = los)) +
   geom_point(size = 0.5, alpha = 0.3) +
-  labs(y = "Length of Stay")
+  labs(y = "LOS")
 
 f7 <- ggplot(mimic_icu_cohort, aes(x = sodium, y = los)) +
   geom_point(size = 0.5, alpha = 0.3) +
-  labs(y = "Length of Stay")
+  labs(y = "LOS")
 
 f8 <- ggplot(mimic_icu_cohort, aes(x = wbc, y = los)) +
   geom_point(size = 0.5, alpha = 0.3) +
-  labs(y = "Length of Stay")
+  labs(y = "LOS")
 
 f <- grid.arrange(f1, f2, f3, f4, f5, f6, f7, f8, ncol = 2, nrow = 4, 
-                  top = "Length of ICU Stay vs 
-                  Last Available Lab Measurements before ICU Stay")
+                  top = paste("Length of ICU Stay vs", 
+                              "Last Available Lab Measurements before ICU Stay",
+                              collapse = " "))
 ```
-**Comment:** `Bicarbonate` and `hematocrit` exhibit relatively uniform distributions of length of ICU stay. Meanwhile, distributions of `creatinine`, `glucose`, and `wbc` are relatively concentrated in regions where measurement values are smaller, and as these values increase, length of stay tends to decrease. The distributions of `Chloride`, `potassium`, and `sodium` are similar to normal distribution.
+**Comment:** Data points of `creatinine`, `glucose`, and `wbc` figures are relatively concentrated in regions where measurement values are small, and as these three values increase, length of stay tends to decrease. The data points of the other five figures show almost in the middle range of measurement values, and as these values increase, length of stay tends to increase and then decrease.
 
 ```{r,eval=TRUE}
 g1 <- ggplot(mimic_icu_cohort, aes(x = heart_rate, y = los)) +
   geom_point(size = 0.5, alpha = 0.3) +
-  xlim(0, 250) +
-  labs(y = "Length of Stay")
+  labs(y = "LOS")
 
 g2 <- ggplot(mimic_icu_cohort, aes(x = non_invasive_blood_pressure_systolic, 
                                    y = los)) +
   geom_point(size = 0.5, alpha = 0.3) +
-  xlim(0, 300) +
-  labs(y = "Length of Stay")
+  labs(y = "LOS")
 
 g3 <- ggplot(mimic_icu_cohort, aes(x = non_invasive_blood_pressure_diastolic, 
                                    y = los)) +
   geom_point(size = 0.5, alpha = 0.3) +
-  xlim(0, 220) +
-  labs(y = "Length of Stay")
+  labs(y = "LOS")
 
 g4 <- ggplot(mimic_icu_cohort, aes(x = respiratory_rate, y = los)) +
   geom_point(size = 0.5, alpha = 0.3) +
-  xlim(0, 100) +
-  labs(y = "Length of Stay")
+  labs(y = "LOS")
 
 g5 <- ggplot(mimic_icu_cohort, aes(x = temperature_fahrenheit, y = los)) +
   geom_point(size = 0.5, alpha = 0.3) +
-  xlim(0, 110) +
-  labs(y = "Length of Stay")
+  labs(y = "LOS")
 
 
-g <- grid.arrange(g1, g2, g3, g4, g5, ncol = 2, top = "Length of ICU Stay vs 
-                  First Vital Measurements within the ICU Stay")
-
+g <- grid.arrange(g1, g2, g3, g4, g5, ncol = 2, 
+                  top = paste("Length of ICU Stay vs", 
+                              "First Vital Measurements within the ICU Stay", 
+                              collapse = " "))
 ```
-**Comment:** The distributions of `heart_rate`, `non_invasive_blood_pressure_systolic`, `non_invasive_blood_pressure_diastolic`, and `respiratory_rate` are almost uniform. `temperature_fahrenheit` around 35 tends to correlate with slightly shorter lengths of stay. Most values fall within the range of 90 to 105 Fahrenheit. Within this range, as `temperature_fahrenheit` increases, the length of stay tends to initially increase before decreasing. The longest lengths of stay occur around a temperature of approximately 98 Fahrenheit, which is the normal body temperature.
+**Comment:** All of five vital measurements have some outliers and they cause influence on normal data analysis.
+
+```{r,eval=TRUE}
+h1 <- ggplot(mimic_icu_cohort, aes(x = heart_rate, y = los)) +
+  geom_point(size = 0.5, alpha = 0.3) +
+  xlim(0, 250) +
+  labs(y = "LOS")
+
+h2 <- ggplot(mimic_icu_cohort, aes(x = non_invasive_blood_pressure_systolic, 
+                                   y = los)) +
+  geom_point(size = 0.5, alpha = 0.3) +
+  xlim(0, 300) +
+  labs(y = "LOS")
+
+h3 <- ggplot(mimic_icu_cohort, aes(x = non_invasive_blood_pressure_diastolic, 
+                                   y = los)) +
+  geom_point(size = 0.5, alpha = 0.3) +
+  xlim(0, 220) +
+  labs(y = "LOS")
+
+h4 <- ggplot(mimic_icu_cohort, aes(x = respiratory_rate, y = los)) +
+  geom_point(size = 0.5, alpha = 0.3) +
+  xlim(0, 100) +
+  labs(y = "LOS")
+
+h5 <- ggplot(mimic_icu_cohort, aes(x = temperature_fahrenheit, y = los)) +
+  geom_point(size = 0.5, alpha = 0.3) +
+  xlim(0, 110) +
+  labs(y = "LOS")
+
+
+h <- grid.arrange(h1, h2, h3, h4, h5, ncol = 2, 
+                  top = paste("Length of ICU Stay vs", 
+                              "First Vital Measurements within the ICU Stay", 
+                              collapse = " "))
+```
+**Comment:** After limiting the range of x-axis, the figures of `heart_rate`, `non_invasive_blood_pressure_systolic`, `non_invasive_blood_pressure_diastolic`, and `respiratory_rate` have similar patterns. `temperature_fahrenheit` around 35 tends to have slightly short lengths of stay. Most values fall within the range of 90 to 105 Fahrenheit. Within this range, as `temperature_fahrenheit` increases, the length of stay tends to increase and then decrease. The longest lengths of stay occur around a temperature of approximately 98 Fahrenheit, which is the normal body temperature.
 
 ```{r,eval=TRUE}
 summary_by_care <- mimic_icu_cohort %>%

@@ -442,12 +442,14 @@ labevents_tble <- open_dataset("./labevents_pq", format = "parquet") |>
   
   # sort by storetime and get the last available measurement
   arrange(storetime, .by_group = TRUE) |>
-  summarise(finalvalue = last(valuenum)) |>
-  mutate(label = tolower(label)) |>
+  slice_tail(n = 1) |>
+  arrange(subject_id, stay_id, itemid) |>
+  select(-storetime, -intime, -itemid) |>
   ungroup() |>
   
   # transform the table to wide format
-  pivot_wider(names_from = label, values_from = finalvalue) |>
+  mutate(label = tolower(label)) |>
+  pivot_wider(names_from = label, values_from = valuenum) |> 
   rename("wbc" = "white blood cells")
 
 print(labevents_tble, width = Inf)
@@ -457,11 +459,13 @@ print(labevents_tble, width = Inf)
 
 `chartevents.csv.gz` (<https://mimic.mit.edu/docs/iv/modules/icu/chartevents/>) contains all the charted data available for a patient. During their ICU stay, the primary repository of a patient’s information is their electronic chart. The `itemid` variable indicates a single measurement type in the database. The `value` variable is the value measured for `itemid`. The first 10 lines of `chartevents.csv.gz` are
 ```{bash}
+#| eval: true
 zcat < ~/mimic/icu/chartevents.csv.gz | head
 ```
 
 `d_items.csv.gz` (<https://mimic.mit.edu/docs/iv/modules/icu/d_items/>) is the dictionary for the `itemid` in `chartevents.csv.gz`. 
 ```{bash}
+#| eval: true
 zcat < ~/mimic/icu/d_items.csv.gz | head
 ```
 
@@ -497,9 +501,10 @@ chartevents_tble <- arrow::open_dataset("./chartevents_pq",
   
   # sort by charttime and get the first available measurement
   arrange(charttime, .by_group = TRUE) |>
-  summarise(firstvalue = first(valuenum)) |>
+  slice_head(n = 1) |>
+  select(-charttime, -intime, -outtime, -itemid) |>
   ungroup() |>
-  pivot_wider(names_from = label, values_from = firstvalue)
+  pivot_wider(names_from = label, values_from = valuenum)
 
 
 # change the fourth and fifth column order to match the screenshot 

@@ -41,14 +41,14 @@ Below is an outline of steps. In this homework, we exclusively work with the Big
 ### Q1.1 Connect to BigQuery
 
 Authenticate with BigQuery using the service account token. Please place the service account token (shared via BruinLearn) in the working directory (same folder as your qmd file). Do **not** add this token to your git repository.
-```{r}
+```{r, eval=TRUE}
 # path to the service account token 
 satoken <- "biostat-203b-2024-winter-313290ce47a6.json"
 # BigQuery authentication using service account2
 bq_auth(path = satoken)
 ```
 Connect to BigQuery database `mimic4_v2_2` in GCP (Google Cloud Platform), using the project billing account `biostat-203b-2024-winter`.
-```{r}
+```{r, eval=TRUE}
 # connect to the BigQuery database `biostat-203b-2024-winter.mimic4_v2_2`
 con_bq <- dbConnect(
     bigrquery::bigquery(),
@@ -59,13 +59,13 @@ con_bq <- dbConnect(
 con_bq
 ```
 List all tables in the `mimic4_v2_2` database.
-```{r}
+```{r, eval=TRUE}
 dbListTables(con_bq)
 ```
 ### Q1.2 `icustays` data
 
 Connect to the `icustays` table.
-```{r}
+```{r, eval=TRUE}
 # full ICU stays table
 icustays_tble <- tbl(con_bq, "icustays") |>
   # show_query() |>
@@ -75,25 +75,54 @@ icustays_tble <- tbl(con_bq, "icustays") |>
 ### Q1.3 `admissions` data
 
 Connect to the `admissions` table.
-```{r}
+```{r, eval=TRUE}
 # # TODO
-# admissions_tble <- 
+admissions_tble <- tbl(con_bq, "admissions") |>
+  # show_query() |>
+  print(width = Inf)
 ```
 
 ### Q1.4 `patients` data
 
 Connect to the `patients` table.
-```{r}
+```{r, eval=TRUE}
 # # TODO
-# patients_tble <-
+patients_tble <- tbl(con_bq, "patients") |>
+  # show_query() |>
+  print(width = Inf)
 ```
 
 ### Q1.5 `labevents` data
 
 Connect to the `labevents` table and retrieve a subset that only contain subjects who appear in `icustays_tble` and the lab items listed in HW3. Only keep the last lab measurements before the ICU stay and pivot lab items to become variables/columns. Write all steps in _one_ chain of pipes.
-```{r}
+```{r, eval=TRUE}
 # # TODO
-# labevents_tble <- 
+labevents_tble <- tbl(con_bq, "labevents") |> 
+  filter(itemid %in% c(50912, 50971, 50983, 50902, 
+                       50882, 51221, 51301, 50931)) |> 
+  select(subject_id, itemid, valuenum, storetime) |>
+  semi_join(icustays_tble, by = c("subject_id")) |> 
+  left_join(select(tbl(con_bq, "d_labitems"), itemid, label), 
+            by = c("itemid")) |> 
+  left_join(select(icustays_tble, subject_id, stay_id, intime), 
+            by = c("subject_id")) |> 
+  
+  # filter the measurement before the ICU stay
+  filter(storetime < intime) |> 
+  group_by(subject_id, label, stay_id) |>
+  
+  # sort by storetime and get the last available measurement
+  arrange(storetime, .by_group = TRUE) |> 
+  slice_max(storetime) |> 
+  arrange(subject_id, stay_id, itemid) |> 
+  select(-storetime, -intime, -itemid) |> 
+  ungroup() |>
+  
+  # transform the table to wide format
+  mutate(label = tolower(label)) |> print(width = Inf) 
+  pivot_wider(names_from = label, values_from = valuenum) |> 
+  rename("wbc" = "white blood cells") |>
+  print(width = Inf)
 ```
 
 ### Q1.6 `chartevents` data

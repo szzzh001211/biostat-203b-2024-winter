@@ -101,10 +101,16 @@ labevents_tble <- tbl(con_bq, "labevents") |>
   filter(itemid %in% c(50912, 50971, 50983, 50902, 
                        50882, 51221, 51301, 50931)) |> 
   select(subject_id, itemid, valuenum, storetime) |>
+  
+  # filter subject_id in labevents to match with icustays_tble
   semi_join(icustays_tble, by = c("subject_id")) |> 
-  left_join(select(tbl(con_bq, "d_labitems"), itemid, label), 
+  
+  # combine label names
+  left_join(tbl(con_bq, "d_labitems") |> select(itemid, label), 
             by = c("itemid")) |> 
-  left_join(select(icustays_tble, subject_id, stay_id, intime), 
+  
+   # combine intime and stay_id by subject_id
+  left_join(icustays_tble |> select(subject_id, stay_id, intime), 
             by = c("subject_id")) |> 
   
   # filter the measurement before the ICU stay
@@ -113,13 +119,14 @@ labevents_tble <- tbl(con_bq, "labevents") |>
   
   # sort by storetime and get the last available measurement
   arrange(storetime, .by_group = TRUE) |> 
-  slice_max(storetime) |> 
-  arrange(subject_id, stay_id, itemid) |> 
+  slice_max(storetime, with_ties = FALSE) |> 
+  arrange(subject_id, stay_id, itemid) |> filter(subject_id == 10171405) |> print(width = Inf)
   select(-storetime, -intime, -itemid) |> 
   ungroup() |>
   
   # transform the table to wide format
-  mutate(label = tolower(label)) |> print(width = Inf) 
+  mutate(label = tolower(label)) |> 
+  collect() |>
   pivot_wider(names_from = label, values_from = valuenum) |> 
   rename("wbc" = "white blood cells") |>
   print(width = Inf)

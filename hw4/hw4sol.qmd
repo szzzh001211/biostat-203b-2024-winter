@@ -120,13 +120,15 @@ labevents_tble <- tbl(con_bq, "labevents") |>
   # sort by storetime and get the last available measurement
   arrange(storetime, .by_group = TRUE) |> 
   slice_max(storetime, with_ties = FALSE) |> 
-  arrange(subject_id, stay_id, itemid) |> filter(subject_id == 10171405) |> print(width = Inf)
+  arrange(subject_id, stay_id, itemid) |> #filter(subject_id == 10171405) |> print(width = Inf)
   select(-storetime, -intime, -itemid) |> 
   ungroup() |>
+  mutate(label = tolower(label)) |> 
+  
+  # temporarily store the result of the query
+  compute() |>
   
   # transform the table to wide format
-  mutate(label = tolower(label)) |> 
-  collect() |>
   pivot_wider(names_from = label, values_from = valuenum) |> 
   rename("wbc" = "white blood cells") |>
   print(width = Inf)
@@ -135,27 +137,88 @@ labevents_tble <- tbl(con_bq, "labevents") |>
 ### Q1.6 `chartevents` data
 
 Connect to `chartevents` table and retrieve a subset that only contain subjects who appear in `icustays_tble` and the chart events listed in HW3. Only keep the first chart events during ICU stay and pivot chart events to become variables/columns. Write all steps in _one_ chain of pipes.
-```{r}
+```{r, eval=TRUE}
 # # TODO
-# chartevents_tble <- 
+chartevents_tble <- tbl(con_bq, "chartevents") |>
+  filter(itemid %in% c(220045, 220179, 220180, 220210, 223761)) |> 
+  select(subject_id, itemid, valuenum, charttime) |>
+  semi_join(icustays_tble, by = c("subject_id")) |>
+  left_join(tbl(con_bq, "d_items") |> select(itemid, label), 
+            by = c("itemid")) |>
+  left_join(icustays_tble |> select(subject_id, stay_id, intime, 
+                                    outtime), by = c("subject_id")) |>
+  filter(charttime >= intime & charttime <= outtime) |>
+  group_by(subject_id, label, stay_id) |>
+  
+  # sort by charttime and get the first available measurement
+  arrange(charttime, .by_group = TRUE) |>
+  slice_min(charttime, with_ties = FALSE) |>
+  arrange(subject_id, stay_id, itemid) |>
+  select(-charttime, -intime, -outtime, -itemid) |>
+  ungroup() |> 
+  compute() |>
+  mutate(label = tolower(label)) |>
+  mutate(label = gsub(" ", "_", label)) |>
+  pivot_wider(names_from = label, values_from = valuenum) |>
+  print(width = Inf)
+
 ```
 
 ### Q1.7 Put things together
 
 This step is similar to Q7 of HW3. Using _one_ chain of pipes `|>` to perform following data wrangling steps: (i) start with the `icustays_tble`, (ii) merge in admissions and patients tables, (iii) keep adults only (age at ICU intime >= 18), (iv) merge in the labevents and chartevents tables, (v) `collect` the tibble.
 
-```{r}
+```{r, eval=TRUE}
 # # TODO
-# mimic_icu_cohort <- 
+mimic_icu_cohort <- icustays_tble |> 
+  left_join(admissions_tble, by = c("subject_id", "hadm_id")) |>
+  left_join(patients_tble, by = c("subject_id")) |>
+  left_join(labevents_tble, by = c("subject_id", "stay_id")) |>
+  left_join(chartevents_tble, by = c("subject_id", "stay_id")) |>
+  mutate(age_intime = anchor_age + year(intime) - anchor_year) |>
+  filter(age_intime >= 18) |>
+  collect() |>
+  arrange(subject_id, hadm_id) |>
+  print(width = Inf)
 ```
 
 ### Q1.8 Preprocessing
 
-Perform the following preprocessing steps. (i) Lump infrequent levels into "Other" level for `first_careunit`, `last_careunit`, `admission_type`, `admission_location`, and `discharge_location`. (ii) Collapse the levels of `race` into `ASIAN`, `BLACK`, `HISPANIC`, `WHITE`, and `Other`. (iii) Create a new variable `los_long` that is `TRUE` when `los` is greater than or equal to 2 days. (iv) Summarize the data using `tbl_summary()`, stratified by `los_long`. Hint: `fct_lump` and `fct_collapse` from the `forcats` package can be useful.
+Perform the following preprocessing steps. (i) Lump infrequent levels into "Other" level for `first_careunit`, `last_careunit`, `admission_type`, `admission_location`, and `discharge_location`. (ii) Collapse the levels of `race` into `ASIAN`, `BLACK`, `HISPANIC`, `WHITE`d, and `Other`. (iii) Create a new variable `los_long` that is `TRUE` when `los` is greater than or equal to 2 days. (iv) Summarize the data using `tbl_summary()`, stratified by `los_long`. Hint: `fct_lump` and `fct_collapse` from the `forcats` package can be useful.
 
 Hint: Below is a numerical summary of my tibble after preprocessing:
 
 <iframe width=95% height="500" src="./mimic_icu_cohort_gtsummary.html"></iframe>
+
+```{r, eval=TRUE}
+# # TODO
+mimic_icu_cohort <- mimic_icu_cohort |>
+  mutate(
+    first_careunit = fct_lump(first_careunit, n = 4),
+    last_careunit = fct_lump(last_careunit, n = 4),
+    admission_type = fct_lump(admission_type, n = 4),
+    admission_location = fct_lump(admission_location, n = 4),
+    discharge_location = fct_lump(discharge_location, n = 4)) |>
+  mutate(race = fct_collapse(race, 
+                             "ASIAN" = str_subset(mimic_icu_cohort$race, 
+                                                  "ASIAN"),
+                             "BLACK" = str_subset(mimic_icu_cohort$race, 
+                                                  "BLACK"),
+                             "HISPANIC" = str_subset(mimic_icu_cohort$race, 
+                                                     "HISPANIC"),
+                             "WHITE" = str_subset(mimic_icu_cohort$race, 
+                                                  "WHITE"), 
+                             other_level = "OTHER")) |>
+  mutate(los_long = los >= 2) |>
+  tbl_summary(by = los_long, 
+              include = -c(subject_id, hadm_id, stay_id, intime, outtime, 
+                           admittime, dischtime, deathtime, admit_provider_id, 
+                           edregtime, edouttime, anchor_age, anchor_year, 
+                           anchor_year_group)) |> 
+  as_tibble()
+
+print(mimic_icu_cohort, width = Inf)
+```
 
 ### Q1.9 Save the final tibble
 
@@ -170,7 +233,7 @@ mimic_icu_cohort |>
   write_rds("mimiciv_shiny/mimic_icu_cohort.rds", compress = "gz")
 ```
 Close database connection and clear workspace.
-```{r}
+```{r, eval=TRUE}
 if (exists("con_bq")) {
   dbDisconnect(con_bq)
 }

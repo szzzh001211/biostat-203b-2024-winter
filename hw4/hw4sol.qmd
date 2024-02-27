@@ -32,6 +32,8 @@ library(DBI)
 library(gt)
 library(gtsummary)
 library(tidyverse)
+library(shiny)
+library(gridExtra)
 ```
 
 ## Q1. Compile the ICU cohort in HW3 from the Google BigQuery database 
@@ -209,16 +211,16 @@ mimic_icu_cohort <- mimic_icu_cohort |>
                              "WHITE" = str_subset(mimic_icu_cohort$race, 
                                                   "WHITE"), 
                              other_level = "OTHER")) |>
-  mutate(los_long = los >= 2) |>
-  tbl_summary(by = los_long, 
-              include = -c(subject_id, hadm_id, stay_id, intime, outtime, 
-                           admittime, dischtime, deathtime, admit_provider_id, 
-                           edregtime, edouttime, anchor_age, anchor_year, 
-                           anchor_year_group)) |> 
-  
-  # save a gt table as a file
-  # gtsave("mimic_icu_cohort_summary.html") |>
-  as_tibble()
+  mutate(los_long = los >= 2)
+
+
+tbl_summary(mimic_icu_cohort, by = los_long, 
+            include = -c(subject_id, hadm_id, stay_id, intime, outtime, 
+                         admittime, dischtime, deathtime, admit_provider_id, 
+                         edregtime, edouttime, anchor_age, anchor_year, 
+                         anchor_year_group)) |> 
+  as_gt() |> 
+  print(width = Inf)
 ```
 **Answer:** Here is the numerical summary of the tibble after preprocessing:
 <iframe width=95% height="500" src="./mimic_icu_cohort_summary.html"></iframe>
@@ -234,10 +236,10 @@ if (!dir.exists("mimiciv_shiny")) {
 }
 # save the final tibble
 mimic_icu_cohort |>
-  write_rds("./mimiciv_shiny/mimic_icu_cohort.rds", compress = "gz")
+  write_rds("mimiciv_shiny/mimic_icu_cohort.rds", compress = "gz")
 ```
 Close database connection and clear workspace.
-```{r, eval=TRUE}
+```{r}
 if (exists("con_bq")) {
   dbDisconnect(con_bq)
 }
@@ -250,8 +252,10 @@ Although it is not a good practice to add big data files to git, for grading pur
 Develop a Shiny app for exploring the ICU cohort data created in Q1. The app should reside in the `mimiciv_shiny` folder. The app should contains at least two tabs. One tab provides easy access to the graphical and numerical summaries of variables (demographics, lab measurements, vitals) in the ICU cohort. The other allows user to choose a specific patient in the cohort and display the patient's ADT and ICU stay information as we did in Q1 of HW3.
 
 ```{r, eval=TRUE}
-library(shiny)
 
+mimic <- readRDS("mimiciv_shiny/mimic_icu_cohort.rds") |>
+  mutate(race = as_factor(race), insurance = as_factor(insurance),
+         marital_status = as_factor(marital_status), gender = as_factor(gender))
 
 # create a new shiny ui
 mimic_ui <- fluidPage(
@@ -341,13 +345,254 @@ mimic_ui <- fluidPage(
  
 
 mimic_server <- function(input, output) {
-    # server logic
-  }
+  
+  # render the caption
+  output$caption <- renderText({
+    input$caption
+  })
+  
+  # render the numerical summary
+  output$summary <- renderPrint({
+    data <- switch(input$dataset, 
+                   "demographics" = mimic[, c("race", "insurance", 
+                                              "marital_status", "gender", 
+                                              "age_intime")],
+                   "lab measurements" = mimic[, c("bicarbonate", "chloride", 
+                                                  "creatinine", "glucose", 
+                                                  "potassium", "sodium", 
+                                                  "hematocrit", "wbc")],
+                   "vitals" = mimic[, c("heart_rate", 
+                                        "non_invasive_blood_pressure_systolic", 
+                                        "non_invasive_blood_pressure_diastolic", 
+                                        "respiratory_rate", 
+                                        "temperature_fahrenheit")])
+    if (input$type == "numerical") {
+      summary(data)
+      } else {
+        return()  
+        }
+  })
+  
+  # render the graphical summary
+  output$sumPlot <- renderPlot({
+    data <- switch(input$dataset, 
+                   "demographics" = mimic[, c("race", "insurance", 
+                                              "marital_status", "gender", 
+                                              "age_intime")],
+                   "lab measurements" = mimic[, c("bicarbonate", "chloride", 
+                                                  "creatinine", "glucose", 
+                                                  "potassium", "sodium", 
+                                                  "hematocrit", "wbc")],
+                   "vitals" = mimic[, c("heart_rate", 
+                                        "non_invasive_blood_pressure_systolic", 
+                                        "non_invasive_blood_pressure_diastolic", 
+                                        "respiratory_rate", 
+                                        "temperature_fahrenheit")])
+    
+    if (input$type == "graphical") {
+      plots <- list()
+      for (col in colnames(data)) {
+        if (is.factor(data[[col]])) {
+          
+          # draw a bar plot if it is a categorical variable
+          plot <- ggplot(data, aes_string(x = col, fill = col)) + 
+            geom_bar() +
+            labs(title = col) +
+            theme(axis.text.x = element_blank())
+        } else {
+          # draw a histogram if it is a continuous variable
+          plot <- ggplot(data, aes_string(x = col)) + 
+            geom_histogram(binwidth = 1, fill = "salmon", color = "black") +
+            labs(title = col)
+        }
+        plots[[col]] <- plot
+        }
+      
+      # put the plots in a grid
+      grid.arrange(grobs = plots, ncol = 2)
+      } else {
+        return(NULL)  
+        }
+    
+  })
+  
+  # render the patient id
+  output$patient_id <- renderText({
+    input$patient_id
+  })
+  
+  # render the patient plot
+  output$idPlot <- renderPlot({
+    if (input$patient_id %in% mimic$subject_id) {
+      if (input$info_type == "ADT") {
+        patient_id <- input$patient_id # set patient ID
+        
+        # find race for that patient
+        race_info <- mimic |> 
+          filter(subject_id == patient_id) |>
+          select(subject_id, race)
 
+        # find other personal info for that patient
+        personal_info <- mimic |>
+          filter(subject_id == patient_id) |>
+          select(subject_id, gender, anchor_age) |>
+          rename(age = anchor_age) |>
+          left_join(race_info, by = "subject_id") |>
+          distinct()
 
+        # find top 3 diagnoses for that patient in each stay ID
+        diagonose_code_info <- read_csv("~/mimic/hosp/d_icd_diagnoses.csv.gz")
+        diagnose_info <- read_csv("~/mimic/hosp/diagnoses_icd.csv.gz") |>
+          filter(subject_id == patient_id) |>
+          select(-icd_version) |>
+          filter(seq_num <= 3) |>
+          left_join(diagonose_code_info, by = "icd_code") |>
+          select(-icd_version)
 
+        # find ADT info for that patient
+        ADT_info <- read_csv("~/mimic/hosp/transfers.csv.gz") |>
+          filter(subject_id == patient_id) |>
+          select(subject_id, hadm_id, intime, outtime, eventtype, careunit) |>
+          filter(eventtype != "discharge") |>
+          arrange(intime) |>
+          distinct()
+
+        # find lab info for that patient
+        lab_info <- open_dataset("./labevents_pq", format = "parquet") |>
+          filter(subject_id == patient_id) |>
+          select(subject_id, hadm_id, charttime) |>
+          collect() |>
+          distinct()
+  
+        # find procedure info for that patient
+        procedure_code_info <- read_csv("~/mimic/hosp/d_icd_procedures.csv.gz")
+        procedure_info <- read_csv("~/mimic/hosp/procedures_icd.csv.gz") |>
+          filter(subject_id == patient_id) |>
+          select(subject_id, hadm_id, chartdate, icd_code) |>
+          mutate(chartdate = as.POSIXct(chartdate, 
+                                        format = "%Y-%m-%d %H:%M:%S")) |>
+          left_join(procedure_code_info, by = "icd_code") |>
+          select(-icd_version) |>
+          arrange(chartdate) |> 
+          
+          # split long title and only keep the first part
+          mutate(short_title = str_split(long_title, ",") %>% sapply(function(x) 
+            x[1])) |> 
+          distinct()
+
+        # combine personal info into required format
+        title_text <- sprintf("Patient %d, %s, %d years old, %s", 
+                              personal_info$subject_id, personal_info$gender, 
+                              personal_info$age, tolower(personal_info$race))
+
+        top3_text <- diagnose_info |>
+          slice(1:3) |>
+          select(long_title) |>
+          mutate(first_five_words = str_split(long_title, "\\s+") %>% 
+                   sapply(function(x) {
+                     if (length(x) < 5) {
+                       
+                       # in case some diagnosis has less than 5 words
+                       paste(x, collapse = " ") 
+                       } else {
+                         paste(x[1:5], collapse = " ")
+                         }
+                     })) |> 
+          pull(first_five_words)
+
+        subtitle_text <- sprintf("%s\n%s\n%s", top3_text[1], top3_text[2], 
+                                 top3_text[3])
+
+        # create the plot and y-axis
+        empty_plot <- ggplot() + 
+          geom_blank() +
+          scale_y_discrete(limits = c("Procedure", "Lab", "ADT")) +
+          labs(x = "Calendar Time", title = title_text, 
+               subtitle = tolower(subtitle_text)) +
+          theme_bw()
+
+        ADT_plot <- empty_plot + 
+          geom_segment(data = ADT_info, aes(x = intime, xend = outtime, 
+                                            y = "ADT", yend = "ADT", 
+                                            color = careunit), 
+                       linewidth = ifelse(str_detect(ADT_info$careunit, "CCU") | 
+                                            str_detect(ADT_info$careunit, 
+                                                       "ICU"), 8, 3)) + 
+          labs(color = "Care Unit") +
+          theme(legend.position = "bottom", legend.box = "vertical", 
+                text = element_text(size = 8))
+
+        Lab_plot <- ADT_plot + 
+          geom_point(data = lab_info, aes(x = charttime, y = "Lab"), 
+                     size = 5, shape = "+")
+
+        Procedure_plot <- Lab_plot + 
+          geom_point(data = procedure_info, aes(x = chartdate, y = "Procedure", 
+                                                shape = short_title), 
+                     size = 5) +
+  
+          # set manually the shape of the procedure to be the total 9 procedures
+          scale_shape_manual(values = 
+                               seq(1, length(
+                                 unique(procedure_info$short_title)))) + 
+          labs(shape = "Procedure", y = "") + 
+          guides(shape = guide_legend(nrow = 5)) + 
+          theme(legend.position = "bottom", legend.box = "vertical", 
+                text = element_text(size = 8))
+
+        plot(Procedure_plot)
+        
+        } else {
+          
+          patient_id <- input$patient_id
+          
+          item_icu_info <- read_csv("~/mimic/icu/d_items.csv.gz") |>
+            filter(itemid %in% c(220045, 220180, 220179, 220210, 223761)) |>
+            select(itemid, abbreviation) |>
+            distinct()
+
+          chartevents_info <- open_dataset("./chartevents_pq", 
+                                           format = "parquet") |>
+            filter(subject_id == patient_id) |>
+            filter(itemid %in% c(220045, 220180, 220179, 220210, 223761)) |>
+            select(subject_id, stay_id, itemid, charttime, valuenum) |>
+            collect() |>
+            left_join(item_icu_info, by = "itemid") |>
+            mutate(charttime = with_tz(charttime, "UTC"))
+
+          title_text <- sprintf("Patient %d ICU stays - Vitals", 
+                                chartevents_info$subject_id)
+
+          icu_plot <- ggplot(chartevents_info, aes(x = charttime, y = valuenum, 
+                                                   color = abbreviation)) +
+            geom_point(size = 1) +
+            geom_line() +
+            labs(title = title_text, 
+                 x = "", 
+                 y = "") + 
+            facet_grid(rows = vars(abbreviation), cols = vars(stay_id), 
+                       scales = "free") +
+            theme_light() +
+            theme(legend.position = "none") +
+            scale_x_datetime(date_labels = "%b %d %H:%M") +
+            
+            # to avoid overlapping of x-axis labels
+            guides(x = guide_axis(n.dodge = 2)) 
+
+          plot(icu_plot)
+          }
+      } else {
+        return("Please enter a valid Patient ID.")
+        }
+
+  })
+}
+
+shinyApp(mimic_ui, mimic_server)
+
+# save the shiny app to a directory
 saveAppDir(
-  appDir = "./mimiciv_shiny",
+  appDir = "mimiciv_shiny",
   appname = "mimic_icu_app",
   overwrite = TRUE
 )

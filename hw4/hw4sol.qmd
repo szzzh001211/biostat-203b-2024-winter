@@ -32,8 +32,6 @@ library(DBI)
 library(gt)
 library(gtsummary)
 library(tidyverse)
-library(shiny)
-library(gridExtra)
 ```
 
 ## Q1. Compile the ICU cohort in HW3 from the Google BigQuery database 
@@ -218,13 +216,8 @@ tbl_summary(mimic_icu_cohort, by = los_long,
             include = -c(subject_id, hadm_id, stay_id, intime, outtime, 
                          admittime, dischtime, deathtime, admit_provider_id, 
                          edregtime, edouttime, anchor_age, anchor_year, 
-                         anchor_year_group)) |> 
-  as_gt() |> 
-  print(width = Inf)
+                         anchor_year_group))
 ```
-**Answer:** Here is the numerical summary of the tibble after preprocessing:
-<iframe width=95% height="500" src="./mimic_icu_cohort_summary.html"></iframe>
-
 
 ### Q1.9 Save the final tibble
 

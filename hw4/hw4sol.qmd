@@ -105,32 +105,31 @@ labevents_tble <- tbl(con_bq, "labevents") |>
   # filter subject_id in labevents to match with icustays_tble
   semi_join(icustays_tble, by = c("subject_id")) |> 
   
-  # combine label names
-  left_join(tbl(con_bq, "d_labitems") |> select(itemid, label), 
-            by = c("itemid")) |> 
-  
-   # combine intime and stay_id by subject_id
+  # combine intime and stay_id by subject_id
   left_join(icustays_tble |> select(subject_id, stay_id, intime), 
             by = c("subject_id")) |> 
   
   # filter the measurement before the ICU stay
   filter(storetime < intime) |> 
-  group_by(subject_id, label, stay_id) |>
+  group_by(subject_id, itemid, stay_id) |>
   
   # sort by storetime and get the last available measurement
   arrange(storetime, .by_group = TRUE) |> 
-  slice_max(storetime, with_ties = FALSE) |> 
-  arrange(subject_id, stay_id, itemid) |> #filter(subject_id == 10171405) |> print(width = Inf)
-  select(-storetime, -intime, -itemid) |> 
+  slice_max(order_by = storetime, with_ties = FALSE) |> 
   ungroup() |>
-  mutate(label = tolower(label)) |> 
-  
-  # temporarily store the result of the query
-  compute() |>
+  select(-storetime, -intime) |> 
   
   # transform the table to wide format
-  pivot_wider(names_from = label, values_from = valuenum) |> 
-  rename("wbc" = "white blood cells") |>
+  pivot_wider(names_from = itemid, values_from = valuenum, names_sort = TRUE) |> 
+  arrange(subject_id, stay_id) |>
+  rename("creatinine" = "50912", 
+         "potassium " = "50971", 
+         "sodium" = "50983", 
+         "chloride" = "50902", 
+         "bicarbonate" = "50882", 
+         "hematocrit" = "51221",
+         "wbc" = "51301",
+         "glucose" = "50931") |>
   print(width = Inf)
 ```
 
@@ -143,23 +142,22 @@ chartevents_tble <- tbl(con_bq, "chartevents") |>
   filter(itemid %in% c(220045, 220179, 220180, 220210, 223761)) |> 
   select(subject_id, itemid, valuenum, charttime) |>
   semi_join(icustays_tble, by = c("subject_id")) |>
-  left_join(tbl(con_bq, "d_items") |> select(itemid, label), 
-            by = c("itemid")) |>
   left_join(icustays_tble |> select(subject_id, stay_id, intime, 
                                     outtime), by = c("subject_id")) |>
   filter(charttime >= intime & charttime <= outtime) |>
-  group_by(subject_id, label, stay_id) |>
+  group_by(subject_id, itemid, stay_id) |>
   
   # sort by charttime and get the first available measurement
-  arrange(charttime, .by_group = TRUE) |>
-  slice_min(charttime, with_ties = FALSE) |>
-  arrange(subject_id, stay_id, itemid) |>
-  select(-charttime, -intime, -outtime, -itemid) |>
-  ungroup() |> 
-  compute() |>
-  mutate(label = tolower(label)) |>
-  mutate(label = gsub(" ", "_", label)) |>
-  pivot_wider(names_from = label, values_from = valuenum) |>
+  slice_min(order_by = charttime, with_ties = FALSE) |>
+  ungroup() |>
+  select(-charttime, -intime, -outtime) |>
+  pivot_wider(names_from = itemid, values_from = valuenum, names_sort = TRUE) |>
+  arrange(subject_id, stay_id) |>
+  rename("heart_rate" = "220045", 
+         "non-invasive_blood_pressure_systolic" = "220179", 
+         "non-invasive_blood_pressure_diastolic" = "220180", 
+         "respiratory_rate" = "220210", 
+         "fahrenheit_temperature" = "223761") |>
   print(width = Inf)
 
 ```

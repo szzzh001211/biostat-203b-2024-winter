@@ -207,7 +207,7 @@ mimic_server <- function(input, output) {
   # render the patient plot
   output$idPlot <- renderPlot({
     if (input$info_type == "ADT") {
-      patient_id <- input$patient_id # set patient ID
+      patient_id <- as.numeric(input$patient_id) # set patient ID
       
       # find race for that patient
       race_info <- mimic |>
@@ -326,7 +326,7 @@ mimic_server <- function(input, output) {
       
     } else {
       
-      patient_id <- input$patient_id
+      patient_id <- as.numeric(input$patient_id)
       
       item_icu_info <- tbl(con_bq, "d_items") |>
         filter(itemid %in% c(220045, 220180, 220179, 220210, 223761)) |>

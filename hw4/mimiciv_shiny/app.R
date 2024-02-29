@@ -80,7 +80,7 @@ mimic_ui <- fluidPage(
                  
                  # Input: Slider for the limit of x-axis
                  uiOutput("xlimit"),
-                 ),
+               ),
                
                # Main panel for displaying outputs
                mainPanel(
@@ -93,9 +93,9 @@ mimic_ui <- fluidPage(
                  
                  # Output: plot of the data
                  plotOutput(outputId = "sumPlot")
-                 )
                )
-             ), 
+             )
+    ), 
     
     # second tab
     tabPanel("Patient Information", 
@@ -115,7 +115,7 @@ mimic_ui <- fluidPage(
                  selectInput(inputId = "info_type",
                              label = "Type of Information:",
                              choices = c("ADT", "ICU stay"))
-                 ),
+               ),
                
                # Main panel for displaying outputs
                mainPanel(
@@ -125,11 +125,11 @@ mimic_ui <- fluidPage(
                  
                  # Output: plot the patient information
                  uiOutput("plot_or_error")
-                 )
                )
              )
     )
   )
+)
 
 
 
@@ -213,7 +213,7 @@ mimic_server <- function(input, output) {
       race_info <- mimic |>
         filter(subject_id == patient_id) |>
         select(subject_id, race)
-
+      
       # find other personal info for that patient
       personal_info <- mimic |>
         filter(subject_id == patient_id) |>
@@ -221,7 +221,7 @@ mimic_server <- function(input, output) {
         rename(age = anchor_age) |>
         left_join(race_info, by = "subject_id") |>
         distinct()
-
+      
       # find top 3 diagnoses for that patient in each stay ID
       diagnose_info <- tbl(con_bq, "diagnoses_icd") |> 
         filter(subject_id == patient_id) |>
@@ -230,7 +230,7 @@ mimic_server <- function(input, output) {
         left_join(tbl(con_bq, "d_icd_diagnoses"), by = "icd_code") |>
         select(-icd_version) |>
         collect()
-
+      
       # find ADT info for that patient
       ADT_info <- tbl(con_bq, "transfers") |>
         filter(subject_id == patient_id) |>
@@ -239,7 +239,7 @@ mimic_server <- function(input, output) {
         arrange(intime) |>
         collect() |>
         distinct() 
-          
+      
       # find lab info for that patient
       lab_info <- tbl(con_bq, "labevents") |>
         filter(subject_id == patient_id) |>
@@ -368,10 +368,11 @@ mimic_server <- function(input, output) {
   output$idText <- renderPrint({
     "Patient ID is not found in the dataset. Please enter a valid patient ID."
   })
-      
-    #dbDisconnect(con_bq)
-
+  
+  #dbDisconnect(con_bq)
+  
 }
 
 shinyApp(mimic_ui, mimic_server)
+
 

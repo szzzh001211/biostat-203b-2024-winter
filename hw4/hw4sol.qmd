@@ -154,10 +154,10 @@ chartevents_tble <- tbl(con_bq, "chartevents") |>
   pivot_wider(names_from = itemid, values_from = valuenum, names_sort = TRUE) |>
   arrange(subject_id, stay_id) |>
   rename("heart_rate" = "220045", 
-         "non-invasive_blood_pressure_systolic" = "220179", 
-         "non-invasive_blood_pressure_diastolic" = "220180", 
+         "non_invasive_blood_pressure_systolic" = "220179", 
+         "non_invasive_blood_pressure_diastolic" = "220180", 
          "respiratory_rate" = "220210", 
-         "fahrenheit_temperature" = "223761") |>
+         "temperature_fahrenheit" = "223761") |>
   print(width = Inf)
 
 ```

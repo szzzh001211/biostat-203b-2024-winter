@@ -6,7 +6,10 @@ library(shiny)
 
 mimic <- readRDS("mimic_icu_cohort.rds") |>
   mutate(race = as_factor(race), insurance = as_factor(insurance),
-         marital_status = as_factor(marital_status), gender = as_factor(gender))
+         marital_status = as_factor(marital_status), 
+         gender = as_factor(gender)) |>
+  rename("systolic_blood_pressure" = "non_invasive_blood_pressure_systolic", 
+         "diastolic_blood_pressure" = "non_invasive_blood_pressure_diastolic")
 
 satoken <- "../biostat-203b-2024-winter-313290ce47a6.json"
 bq_auth(path = satoken)
@@ -71,10 +74,8 @@ mimic_ui <- fluidPage(
                    selectInput(inputId = "vital_summary",
                                label = "Vital variable:",
                                choices = c("heart_rate", 
-                                           paste0("non_invasive_blood_pressure", 
-                                                  "_systolic"), 
-                                           paste0("non_invasive_blood_pressure", 
-                                                  "_diastolic"), 
+                                           "systolic_blood_pressure", 
+                                           "diastolic_blood_pressure", 
                                            "respiratory_rate", 
                                            "temperature_fahrenheit"))),
                  

@@ -115,7 +115,7 @@ mimic_ui <- fluidPage(
                  # Input: Selector for choosing a type of information
                  selectInput(inputId = "info_type",
                              label = "Type of Information:",
-                             choices = c("ADT", "ICU stay"))
+                             choices = c("ADT", "ICU Stay"))
                ),
                
                # Main panel for displaying outputs

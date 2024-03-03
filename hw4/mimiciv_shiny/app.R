@@ -107,10 +107,10 @@ mimic_ui <- fluidPage(
                # Sidebar panel for inputs
                sidebarPanel(
                  
-                 # Input: Selector for choosing a patient
-                 textInput(inputId = "patient_id", 
-                           label = "Patient ID:", 
-                           value = ""),
+                 # Input: Text for providing a patient ID
+                 selectizeInput(inputId = "patient_id",
+                                label = "Enter Patient ID:",
+                                choices = NULL, multiple = FALSE),
                  
                  # Input: Selector for choosing a type of information
                  selectInput(inputId = "info_type",
@@ -135,7 +135,14 @@ mimic_ui <- fluidPage(
 
 
 
-mimic_server <- function(input, output) {
+mimic_server <- function(input, output, session) {
+  
+  observe({
+    updateSelectizeInput(session, "patient_id",
+                         server = TRUE,
+                         choices = unique(mimic$subject_id))
+  })
+  
   
   # create ractive data
   filtered_data <- reactive({

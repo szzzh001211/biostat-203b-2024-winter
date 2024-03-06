@@ -53,7 +53,7 @@ mimic_ui <- fluidPage(
                  conditionalPanel(
                    condition = "input.dataset == 'demographics'",
                    selectInput(inputId = "demo_summary",
-                               label = "Demographics variable:",
+                               label = "Demographics Variable:",
                                choices = c("race", "insurance", 
                                            "marital_status", 
                                            "gender", "age_intime"))),
@@ -62,7 +62,7 @@ mimic_ui <- fluidPage(
                  conditionalPanel(
                    condition = "input.dataset == 'lab measurements'",
                    selectInput(inputId = "lab_summary",
-                               label = "Lab variable:",
+                               label = "Lab Variable:",
                                choices = c("bicarbonate", "chloride", 
                                            "creatinine", "glucose", 
                                            "potassium", "sodium", 
@@ -70,9 +70,9 @@ mimic_ui <- fluidPage(
                  
                  # Input: choose a variable (second level category)
                  conditionalPanel(
-                   condition = "input.dataset == 'vitals'",
+                   condition = "input.dataset == 'vitals'", 
                    selectInput(inputId = "vital_summary",
-                               label = "Vital variable:",
+                               label = "Vital Variable:",
                                choices = c("heart_rate", 
                                            "systolic_blood_pressure", 
                                            "diastolic_blood_pressure", 
@@ -80,7 +80,7 @@ mimic_ui <- fluidPage(
                                            "temperature_fahrenheit"))),
                  
                  # Input: Slider for the limit of x-axis
-                 uiOutput("xlimit"),
+                 uiOutput("xlimit")
                ),
                
                # Main panel for displaying outputs
@@ -137,6 +137,7 @@ mimic_ui <- fluidPage(
 
 mimic_server <- function(input, output, session) {
   
+  # select patient id based on the input
   observe({
     updateSelectizeInput(session, "patient_id",
                          server = TRUE,
@@ -174,15 +175,15 @@ mimic_server <- function(input, output, session) {
         labs(title = colnames(data)) +
         theme(axis.text.x = element_blank()) +
         theme_bw()
-    } else {
-      
-      # draw a histogram if it is a continuous variable
-      ggplot(data, aes_string(x = colnames(data))) + 
-        geom_histogram(binwidth = 1, fill = "salmon", color = "black") +
-        labs(title = colnames(data)) +
-        xlim(input$xlimit) +
-        theme_bw()
-    }
+      } else {
+        
+        # draw a histogram if it is a continuous variable
+        ggplot(data, aes_string(x = colnames(data))) + 
+          geom_histogram(binwidth = 1, fill = "salmon", color = "black") +
+          labs(title = colnames(data)) +
+          xlim(input$xlimit) +
+          theme_bw()
+        }
   })
   
   # render the slider
@@ -195,7 +196,7 @@ mimic_server <- function(input, output, session) {
                   max = max(data, na.rm = TRUE),
                   value = c(min(data, na.rm = TRUE),
                             max(data, na.rm = TRUE)))
-    }
+      }
   })
   
   # render the patient id
@@ -207,9 +208,9 @@ mimic_server <- function(input, output, session) {
   output$plot_or_error <- renderUI({
     if (input$patient_id %in% mimic$subject_id) {
       plotOutput("idPlot")
-    } else {
-      textOutput("idText")
-    }
+      } else {
+        textOutput("idText")
+        }
   })
   
   # render the patient plot
@@ -284,10 +285,10 @@ mimic_server <- function(input, output, session) {
                      
                      # in case some diagnosis has less than 5 words
                      paste(x, collapse = " ")
-                   } else {
-                     paste(x[1:5], collapse = " ")
-                   }
-                 })) |>
+                     } else {
+                       paste(x[1:5], collapse = " ")
+                       }
+                   })) |>
         pull(first_five_words)
       
       subtitle_text <- sprintf("%s\n%s\n%s", top3_text[1], top3_text[2],
@@ -332,52 +333,50 @@ mimic_server <- function(input, output, session) {
       
       plot(Procedure_plot)
       
-    } else {
+      } else {
       
-      patient_id <- as.numeric(input$patient_id)
-      
-      item_icu_info <- tbl(con_bq, "d_items") |>
-        filter(itemid %in% c(220045, 220180, 220179, 220210, 223761)) |>
-        select(itemid, abbreviation) |>
-        collect() |>
-        distinct()
-      
-      chartevents_info <- tbl(con_bq, "chartevents") |>
-        filter(subject_id == patient_id) |>
-        filter(itemid %in% c(220045, 220180, 220179, 220210, 223761)) |>
-        select(subject_id, stay_id, itemid, charttime, valuenum) |>
-        collect() |>
-        left_join(item_icu_info, by = "itemid") |>
-        mutate(charttime = with_tz(charttime, "UTC"))
-      
-      title_text <- sprintf("Patient %d ICU stays - Vitals",
-                            chartevents_info$subject_id)
-      
-      icu_plot <- ggplot(chartevents_info, aes(x = charttime, y = valuenum,
-                                               color = abbreviation)) +
-        geom_point(size = 1) +
-        geom_line() +
-        labs(title = title_text,
-             x = "",
-             y = "") +
-        facet_grid(rows = vars(abbreviation), cols = vars(stay_id),
-                   scales = "free") +
-        theme_light() +
-        theme(legend.position = "none") +
-        scale_x_datetime(date_labels = "%b %d %H:%M") +
+        patient_id <- as.numeric(input$patient_id)
         
-        # to avoid overlapping of x-axis labels
-        guides(x = guide_axis(n.dodge = 2))
-      
-      plot(icu_plot)
-    }
+        item_icu_info <- tbl(con_bq, "d_items") |>
+          filter(itemid %in% c(220045, 220180, 220179, 220210, 223761)) |>
+          select(itemid, abbreviation) |>
+          collect() |>
+          distinct()
+        
+        chartevents_info <- tbl(con_bq, "chartevents") |>
+          filter(subject_id == patient_id) |>
+          filter(itemid %in% c(220045, 220180, 220179, 220210, 223761)) |>
+          select(subject_id, stay_id, itemid, charttime, valuenum) |>
+          collect() |>
+          left_join(item_icu_info, by = "itemid") |>
+          mutate(charttime = with_tz(charttime, "UTC"))
+        
+        title_text <- sprintf("Patient %d ICU stays - Vitals",
+                              chartevents_info$subject_id)
+        
+        icu_plot <- ggplot(chartevents_info, aes(x = charttime, y = valuenum,
+                                                 color = abbreviation)) +
+          geom_point(size = 1) +
+          geom_line() +
+          labs(title = title_text,
+               x = "",
+               y = "") +
+          facet_grid(rows = vars(abbreviation), cols = vars(stay_id),
+                     scales = "free") +
+          theme_light() +
+          theme(legend.position = "none") +
+          scale_x_datetime(date_labels = "%b %d %H:%M") +
+          
+          # to avoid overlapping of x-axis labels
+          guides(x = guide_axis(n.dodge = 2))
+        
+        plot(icu_plot)
+        }
   })
   
   output$idText <- renderPrint({
     "Patient ID is not found in the dataset. Please enter a valid patient ID."
   })
-  
-  #dbDisconnect(con_bq)
   
 }
 

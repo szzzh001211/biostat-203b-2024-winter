@@ -106,7 +106,8 @@ labevents_tble <- tbl(con_bq, "labevents") |>
   semi_join(icustays_tble, by = c("subject_id")) |> 
   
   # combine intime and stay_id by subject_id
-  left_join(icustays_tble |> select(subject_id, stay_id, intime), 
+  left_join(icustays_tble |> 
+              select(subject_id, stay_id, intime), 
             by = c("subject_id")) |> 
   
   # filter the measurement before the ICU stay
@@ -120,10 +121,11 @@ labevents_tble <- tbl(con_bq, "labevents") |>
   select(-storetime, -intime) |> 
   
   # transform the table to wide format
-  pivot_wider(names_from = itemid, values_from = valuenum, names_sort = TRUE) |> 
+  pivot_wider(names_from = itemid, values_from = valuenum, 
+              names_sort = TRUE) |> 
   arrange(subject_id, stay_id) |>
   rename("creatinine" = "50912", 
-         "potassium " = "50971", 
+         "potassium" = "50971", 
          "sodium" = "50983", 
          "chloride" = "50902", 
          "bicarbonate" = "50882", 
@@ -142,8 +144,9 @@ chartevents_tble <- tbl(con_bq, "chartevents") |>
   filter(itemid %in% c(220045, 220179, 220180, 220210, 223761)) |> 
   select(subject_id, itemid, valuenum, charttime) |>
   semi_join(icustays_tble, by = c("subject_id")) |>
-  left_join(icustays_tble |> select(subject_id, stay_id, intime, 
-                                    outtime), by = c("subject_id")) |>
+  left_join(icustays_tble |> 
+              select(subject_id, stay_id, intime, outtime), 
+            by = c("subject_id")) |>
   filter(charttime >= intime & charttime <= outtime) |>
   group_by(subject_id, itemid, stay_id) |>
   
@@ -151,7 +154,8 @@ chartevents_tble <- tbl(con_bq, "chartevents") |>
   slice_min(order_by = charttime, with_ties = FALSE) |>
   ungroup() |>
   select(-charttime, -intime, -outtime) |>
-  pivot_wider(names_from = itemid, values_from = valuenum, names_sort = TRUE) |>
+  pivot_wider(names_from = itemid, values_from = valuenum, 
+              names_sort = TRUE) |>
   arrange(subject_id, stay_id) |>
   rename("heart_rate" = "220045", 
          "non_invasive_blood_pressure_systolic" = "220179", 
@@ -195,7 +199,7 @@ mimic_icu_cohort <- mimic_icu_cohort |>
     first_careunit = fct_lump(first_careunit, n = 4),
     last_careunit = fct_lump(last_careunit, n = 4),
     admission_type = fct_lump(admission_type, n = 4),
-    admission_location = fct_lump(admission_location, n = 4),
+    admission_location = fct_lump(admission_location, n = 3),
     discharge_location = fct_lump(discharge_location, n = 4)) |>
   mutate(race = fct_collapse(race, 
                              "ASIAN" = str_subset(mimic_icu_cohort$race, 
@@ -206,7 +210,7 @@ mimic_icu_cohort <- mimic_icu_cohort |>
                                                      "HISPANIC"),
                              "WHITE" = str_subset(mimic_icu_cohort$race, 
                                                   "WHITE"), 
-                             other_level = "OTHER")) |>
+                             other_level = "Other")) |>
   mutate(los_long = los >= 2)
 
 

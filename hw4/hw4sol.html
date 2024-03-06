@@ -3101,7 +3101,7 @@ loaded via a namespace (and not attached):
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>memuse<span class="sc">::</span><span class="fu">Sys.meminfo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Totalram:   16.000 GiB 
-Freeram:   413.094 MiB </code></pre>
+Freeram:   395.559 MiB </code></pre>
 </div>
 </div>
 <p>Load database libraries and the tidyverse frontend:</p>
@@ -3333,31 +3333,33 @@ Freeram:   413.094 MiB </code></pre>
 <span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">semi_join</span>(icustays_tble, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">&quot;subject_id&quot;</span>)) <span class="sc">|&gt;</span> </span>
 <span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>  </span>
 <span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>  <span class="co"># combine intime and stay_id by subject_id</span></span>
-<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(icustays_tble <span class="sc">|&gt;</span> <span class="fu">select</span>(subject_id, stay_id, intime), </span>
-<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>            <span class="at">by =</span> <span class="fu">c</span>(<span class="st">&quot;subject_id&quot;</span>)) <span class="sc">|&gt;</span> </span>
-<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>  <span class="co"># filter the measurement before the ICU stay</span></span>
-<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(storetime <span class="sc">&lt;</span> intime) <span class="sc">|&gt;</span> </span>
-<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(subject_id, itemid, stay_id) <span class="sc">|&gt;</span></span>
-<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>  <span class="co"># sort by storetime and get the last available measurement</span></span>
-<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(storetime, <span class="at">.by_group =</span> <span class="cn">TRUE</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_max</span>(<span class="at">order_by =</span> storetime, <span class="at">with_ties =</span> <span class="cn">FALSE</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">|&gt;</span></span>
-<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>storetime, <span class="sc">-</span>intime) <span class="sc">|&gt;</span> </span>
-<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a>  <span class="co"># transform the table to wide format</span></span>
-<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> itemid, <span class="at">values_from =</span> valuenum, <span class="at">names_sort =</span> <span class="cn">TRUE</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(subject_id, stay_id) <span class="sc">|&gt;</span></span>
-<span id="cb21-27"><a href="#cb21-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="st">&quot;creatinine&quot;</span> <span class="ot">=</span> <span class="st">&quot;50912&quot;</span>, </span>
-<span id="cb21-28"><a href="#cb21-28" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;potassium &quot;</span> <span class="ot">=</span> <span class="st">&quot;50971&quot;</span>, </span>
-<span id="cb21-29"><a href="#cb21-29" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;sodium&quot;</span> <span class="ot">=</span> <span class="st">&quot;50983&quot;</span>, </span>
-<span id="cb21-30"><a href="#cb21-30" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;chloride&quot;</span> <span class="ot">=</span> <span class="st">&quot;50902&quot;</span>, </span>
-<span id="cb21-31"><a href="#cb21-31" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;bicarbonate&quot;</span> <span class="ot">=</span> <span class="st">&quot;50882&quot;</span>, </span>
-<span id="cb21-32"><a href="#cb21-32" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;hematocrit&quot;</span> <span class="ot">=</span> <span class="st">&quot;51221&quot;</span>,</span>
-<span id="cb21-33"><a href="#cb21-33" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;wbc&quot;</span> <span class="ot">=</span> <span class="st">&quot;51301&quot;</span>,</span>
-<span id="cb21-34"><a href="#cb21-34" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;glucose&quot;</span> <span class="ot">=</span> <span class="st">&quot;50931&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb21-35"><a href="#cb21-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="at">width =</span> <span class="cn">Inf</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(icustays_tble <span class="sc">|&gt;</span> </span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>              <span class="fu">select</span>(subject_id, stay_id, intime), </span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>            <span class="at">by =</span> <span class="fu">c</span>(<span class="st">&quot;subject_id&quot;</span>)) <span class="sc">|&gt;</span> </span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># filter the measurement before the ICU stay</span></span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(storetime <span class="sc">&lt;</span> intime) <span class="sc">|&gt;</span> </span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(subject_id, itemid, stay_id) <span class="sc">|&gt;</span></span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>  <span class="co"># sort by storetime and get the last available measurement</span></span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(storetime, <span class="at">.by_group =</span> <span class="cn">TRUE</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_max</span>(<span class="at">order_by =</span> storetime, <span class="at">with_ties =</span> <span class="cn">FALSE</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">|&gt;</span></span>
+<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>storetime, <span class="sc">-</span>intime) <span class="sc">|&gt;</span> </span>
+<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a>  <span class="co"># transform the table to wide format</span></span>
+<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> itemid, <span class="at">values_from =</span> valuenum, </span>
+<span id="cb21-27"><a href="#cb21-27" aria-hidden="true" tabindex="-1"></a>              <span class="at">names_sort =</span> <span class="cn">TRUE</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb21-28"><a href="#cb21-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(subject_id, stay_id) <span class="sc">|&gt;</span></span>
+<span id="cb21-29"><a href="#cb21-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="st">&quot;creatinine&quot;</span> <span class="ot">=</span> <span class="st">&quot;50912&quot;</span>, </span>
+<span id="cb21-30"><a href="#cb21-30" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;potassium&quot;</span> <span class="ot">=</span> <span class="st">&quot;50971&quot;</span>, </span>
+<span id="cb21-31"><a href="#cb21-31" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;sodium&quot;</span> <span class="ot">=</span> <span class="st">&quot;50983&quot;</span>, </span>
+<span id="cb21-32"><a href="#cb21-32" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;chloride&quot;</span> <span class="ot">=</span> <span class="st">&quot;50902&quot;</span>, </span>
+<span id="cb21-33"><a href="#cb21-33" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;bicarbonate&quot;</span> <span class="ot">=</span> <span class="st">&quot;50882&quot;</span>, </span>
+<span id="cb21-34"><a href="#cb21-34" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;hematocrit&quot;</span> <span class="ot">=</span> <span class="st">&quot;51221&quot;</span>,</span>
+<span id="cb21-35"><a href="#cb21-35" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;wbc&quot;</span> <span class="ot">=</span> <span class="st">&quot;51301&quot;</span>,</span>
+<span id="cb21-36"><a href="#cb21-36" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;glucose&quot;</span> <span class="ot">=</span> <span class="st">&quot;50931&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb21-37"><a href="#cb21-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="at">width =</span> <span class="cn">Inf</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Warning: ORDER BY is ignored in subqueries without LIMIT
 ℹ Do you need to move arrange() later in the pipeline or use window_order() instead?
@@ -3368,30 +3370,30 @@ ORDER BY is ignored in subqueries without LIMIT
 <pre><code># Source:     SQL [?? x 10]
 # Database:   BigQueryConnection
 # Ordered by: subject_id, stay_id
-   subject_id  stay_id bicarbonate chloride creatinine glucose `potassium `
-        &lt;int&gt;    &lt;int&gt;       &lt;dbl&gt;    &lt;dbl&gt;      &lt;dbl&gt;   &lt;dbl&gt;        &lt;dbl&gt;
- 1   10000032 39553978          25       95        0.7     102          6.7
- 2   10000980 39765666          21      109        2.3      89          3.9
- 3   10001217 34592300          30      104        0.5      87          4.1
- 4   10001217 37067082          22      108        0.6     112          4.2
- 5   10001725 31205490          NA       98       NA        NA          4.1
- 6   10001884 37510196          30       88        1.1     141          4.5
- 7   10002013 39060235          24      102        0.9     288          3.5
- 8   10002155 31090461          23       98        2.8     117          4.9
- 9   10002155 32358465          26       85        1.4     133          5.7
-10   10002155 33685454          24      105        1.1     138          4.6
-   sodium hematocrit   wbc
-    &lt;dbl&gt;      &lt;dbl&gt; &lt;dbl&gt;
- 1    126       41.1   6.9
- 2    144       27.3   5.3
- 3    142       37.4   5.4
- 4    142       38.1  15.7
- 5    139       NA    NA  
- 6    130       39.7  12.2
- 7    137       34.9   7.2
- 8    135       25.5  17.9
- 9    120       22.4   9.8
-10    139       39.7   7.9
+   subject_id  stay_id bicarbonate chloride creatinine glucose potassium sodium
+        &lt;int&gt;    &lt;int&gt;       &lt;dbl&gt;    &lt;dbl&gt;      &lt;dbl&gt;   &lt;dbl&gt;     &lt;dbl&gt;  &lt;dbl&gt;
+ 1   10000032 39553978          25       95        0.7     102       6.7    126
+ 2   10000980 39765666          21      109        2.3      89       3.9    144
+ 3   10001217 34592300          30      104        0.5      87       4.1    142
+ 4   10001217 37067082          22      108        0.6     112       4.2    142
+ 5   10001725 31205490          NA       98       NA        NA       4.1    139
+ 6   10001884 37510196          30       88        1.1     141       4.5    130
+ 7   10002013 39060235          24      102        0.9     288       3.5    137
+ 8   10002155 31090461          23       98        2.8     117       4.9    135
+ 9   10002155 32358465          26       85        1.4     133       5.7    120
+10   10002155 33685454          24      105        1.1     138       4.6    139
+   hematocrit   wbc
+        &lt;dbl&gt; &lt;dbl&gt;
+ 1       41.1   6.9
+ 2       27.3   5.3
+ 3       37.4   5.4
+ 4       38.1  15.7
+ 5       NA    NA  
+ 6       39.7  12.2
+ 7       34.9   7.2
+ 8       25.5  17.9
+ 9       22.4   9.8
+10       39.7   7.9
 # ℹ more rows</code></pre>
 </div>
 </div>
@@ -3405,63 +3407,53 @@ ORDER BY is ignored in subqueries without LIMIT
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(itemid <span class="sc">%in%</span> <span class="fu">c</span>(<span class="dv">220045</span>, <span class="dv">220179</span>, <span class="dv">220180</span>, <span class="dv">220210</span>, <span class="dv">223761</span>)) <span class="sc">|&gt;</span> </span>
 <span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(subject_id, itemid, valuenum, charttime) <span class="sc">|&gt;</span></span>
 <span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">semi_join</span>(icustays_tble, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">&quot;subject_id&quot;</span>)) <span class="sc">|&gt;</span></span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(icustays_tble <span class="sc">|&gt;</span> <span class="fu">select</span>(subject_id, stay_id, intime, </span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>                                    outtime), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">&quot;subject_id&quot;</span>)) <span class="sc">|&gt;</span></span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(charttime <span class="sc">&gt;=</span> intime <span class="sc">&amp;</span> charttime <span class="sc">&lt;=</span> outtime) <span class="sc">|&gt;</span></span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(subject_id, itemid, stay_id) <span class="sc">|&gt;</span></span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># sort by charttime and get the first available measurement</span></span>
-<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_min</span>(<span class="at">order_by =</span> charttime, <span class="at">with_ties =</span> <span class="cn">FALSE</span>) <span class="sc">|&gt;</span></span>
-<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">|&gt;</span></span>
-<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>charttime, <span class="sc">-</span>intime, <span class="sc">-</span>outtime) <span class="sc">|&gt;</span></span>
-<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> itemid, <span class="at">values_from =</span> valuenum, <span class="at">names_sort =</span> <span class="cn">TRUE</span>) <span class="sc">|&gt;</span></span>
-<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(subject_id, stay_id) <span class="sc">|&gt;</span></span>
-<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="st">&quot;heart_rate&quot;</span> <span class="ot">=</span> <span class="st">&quot;220045&quot;</span>, </span>
-<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;non-invasive_blood_pressure_systolic&quot;</span> <span class="ot">=</span> <span class="st">&quot;220179&quot;</span>, </span>
-<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;non-invasive_blood_pressure_diastolic&quot;</span> <span class="ot">=</span> <span class="st">&quot;220180&quot;</span>, </span>
-<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;respiratory_rate&quot;</span> <span class="ot">=</span> <span class="st">&quot;220210&quot;</span>, </span>
-<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;fahrenheit_temperature&quot;</span> <span class="ot">=</span> <span class="st">&quot;223761&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="at">width =</span> <span class="cn">Inf</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(icustays_tble <span class="sc">|&gt;</span> </span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>              <span class="fu">select</span>(subject_id, stay_id, intime, outtime), </span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>            <span class="at">by =</span> <span class="fu">c</span>(<span class="st">&quot;subject_id&quot;</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(charttime <span class="sc">&gt;=</span> intime <span class="sc">&amp;</span> charttime <span class="sc">&lt;=</span> outtime) <span class="sc">|&gt;</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(subject_id, itemid, stay_id) <span class="sc">|&gt;</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># sort by charttime and get the first available measurement</span></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_min</span>(<span class="at">order_by =</span> charttime, <span class="at">with_ties =</span> <span class="cn">FALSE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">|&gt;</span></span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>charttime, <span class="sc">-</span>intime, <span class="sc">-</span>outtime) <span class="sc">|&gt;</span></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> itemid, <span class="at">values_from =</span> valuenum, </span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>              <span class="at">names_sort =</span> <span class="cn">TRUE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(subject_id, stay_id) <span class="sc">|&gt;</span></span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="st">&quot;heart_rate&quot;</span> <span class="ot">=</span> <span class="st">&quot;220045&quot;</span>, </span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;non_invasive_blood_pressure_systolic&quot;</span> <span class="ot">=</span> <span class="st">&quot;220179&quot;</span>, </span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;non_invasive_blood_pressure_diastolic&quot;</span> <span class="ot">=</span> <span class="st">&quot;220180&quot;</span>, </span>
+<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;respiratory_rate&quot;</span> <span class="ot">=</span> <span class="st">&quot;220210&quot;</span>, </span>
+<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a>         <span class="st">&quot;temperature_fahrenheit&quot;</span> <span class="ot">=</span> <span class="st">&quot;223761&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="at">width =</span> <span class="cn">Inf</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># Source:     SQL [?? x 7]
 # Database:   BigQueryConnection
 # Ordered by: subject_id, stay_id
-   subject_id  stay_id heart_rate `non-invasive_blood_pressure_systolic`
-        &lt;int&gt;    &lt;int&gt;      &lt;dbl&gt;                                  &lt;dbl&gt;
- 1   10000032 39553978         91                                     84
- 2   10000980 39765666         77                                    150
- 3   10001217 34592300         96                                    167
- 4   10001217 37067082         86                                    151
- 5   10001725 31205490         55                                     73
- 6   10001884 37510196         38                                    180
- 7   10002013 39060235         80                                    104
- 8   10002155 31090461         94                                    118
- 9   10002155 32358465         98                                    109
-10   10002155 33685454         68                                    126
-   `non-invasive_blood_pressure_diastolic` respiratory_rate
-                                     &lt;dbl&gt;            &lt;dbl&gt;
- 1                                      48               24
- 2                                      77               23
- 3                                      95               11
- 4                                      90               18
- 5                                      56               19
- 6                                      12               10
- 7                                      70               14
- 8                                      51               18
- 9                                      65               23
-10                                      61               18
-   fahrenheit_temperature
-                    &lt;dbl&gt;
- 1                   98.7
- 2                   98  
- 3                   97.6
- 4                   98.5
- 5                   97.7
- 6                   98.1
- 7                   97.2
- 8                   96.9
- 9                   97.7
-10                   95.9
+   subject_id  stay_id heart_rate non_invasive_blood_pressure_systolic
+        &lt;int&gt;    &lt;int&gt;      &lt;dbl&gt;                                &lt;dbl&gt;
+ 1   10000032 39553978         91                                   84
+ 2   10000980 39765666         77                                  150
+ 3   10001217 34592300         96                                  167
+ 4   10001217 37067082         86                                  151
+ 5   10001725 31205490         55                                   73
+ 6   10001884 37510196         38                                  180
+ 7   10002013 39060235         80                                  104
+ 8   10002155 31090461         94                                  118
+ 9   10002155 32358465         98                                  109
+10   10002155 33685454         68                                  126
+   non_invasive_blood_pressure_diastolic respiratory_rate temperature_fahrenheit
+                                   &lt;dbl&gt;            &lt;dbl&gt;                  &lt;dbl&gt;
+ 1                                    48               24                   98.7
+ 2                                    77               23                   98  
+ 3                                    95               11                   97.6
+ 4                                    90               18                   98.5
+ 5                                    56               19                   97.7
+ 6                                    12               10                   98.1
+ 7                                    70               14                   97.2
+ 8                                    51               18                   96.9
+ 9                                    65               23                   97.7
+10                                    61               18                   95.9
 # ℹ more rows</code></pre>
 </div>
 </div>
@@ -3575,54 +3567,42 @@ ORDER BY is ignored in subqueries without LIMIT
  8                    1 F              80        2128 2008 - 2010      
  9                    0 F              80        2128 2008 - 2010      
 10                    0 F              80        2128 2008 - 2010      
-   dod        age_intime bicarbonate chloride creatinine glucose `potassium `
-   &lt;date&gt;          &lt;int&gt;       &lt;dbl&gt;    &lt;dbl&gt;      &lt;dbl&gt;   &lt;dbl&gt;        &lt;dbl&gt;
- 1 2180-09-09         52          25       95        0.7     102          6.7
- 2 2193-08-26         76          21      109        2.3      89          3.9
- 3 NA                 55          22      108        0.6     112          4.2
- 4 NA                 55          30      104        0.5      87          4.1
- 5 NA                 46          NA       98       NA        NA          4.1
- 6 2131-01-20         77          30       88        1.1     141          4.5
- 7 NA                 57          24      102        0.9     288          3.5
- 8 2131-03-10         83          26       85        1.4     133          5.7
- 9 2131-03-10         81          24      105        1.1     138          4.6
-10 2131-03-10         82          23       98        2.8     117          4.9
-   sodium hematocrit   wbc heart_rate `non-invasive_blood_pressure_systolic`
-    &lt;dbl&gt;      &lt;dbl&gt; &lt;dbl&gt;      &lt;dbl&gt;                                  &lt;dbl&gt;
- 1    126       41.1   6.9         91                                     84
- 2    144       27.3   5.3         77                                    150
- 3    142       38.1  15.7         86                                    151
- 4    142       37.4   5.4         96                                    167
- 5    139       NA    NA           55                                     73
- 6    130       39.7  12.2         38                                    180
- 7    137       34.9   7.2         80                                    104
- 8    120       22.4   9.8         98                                    109
- 9    139       39.7   7.9         68                                    126
-10    135       25.5  17.9         94                                    118
-   `non-invasive_blood_pressure_diastolic` respiratory_rate
-                                     &lt;dbl&gt;            &lt;dbl&gt;
- 1                                      48               24
- 2                                      77               23
- 3                                      90               18
- 4                                      95               11
- 5                                      56               19
- 6                                      12               10
- 7                                      70               14
- 8                                      65               23
- 9                                      61               18
-10                                      51               18
-   fahrenheit_temperature
-                    &lt;dbl&gt;
- 1                   98.7
- 2                   98  
- 3                   98.5
- 4                   97.6
- 5                   97.7
- 6                   98.1
- 7                   97.2
- 8                   97.7
- 9                   95.9
-10                   96.9
+   dod        age_intime bicarbonate chloride creatinine glucose potassium
+   &lt;date&gt;          &lt;int&gt;       &lt;dbl&gt;    &lt;dbl&gt;      &lt;dbl&gt;   &lt;dbl&gt;     &lt;dbl&gt;
+ 1 2180-09-09         52          25       95        0.7     102       6.7
+ 2 2193-08-26         76          21      109        2.3      89       3.9
+ 3 NA                 55          22      108        0.6     112       4.2
+ 4 NA                 55          30      104        0.5      87       4.1
+ 5 NA                 46          NA       98       NA        NA       4.1
+ 6 2131-01-20         77          30       88        1.1     141       4.5
+ 7 NA                 57          24      102        0.9     288       3.5
+ 8 2131-03-10         83          26       85        1.4     133       5.7
+ 9 2131-03-10         81          24      105        1.1     138       4.6
+10 2131-03-10         82          23       98        2.8     117       4.9
+   sodium hematocrit   wbc heart_rate non_invasive_blood_pressure_systolic
+    &lt;dbl&gt;      &lt;dbl&gt; &lt;dbl&gt;      &lt;dbl&gt;                                &lt;dbl&gt;
+ 1    126       41.1   6.9         91                                   84
+ 2    144       27.3   5.3         77                                  150
+ 3    142       38.1  15.7         86                                  151
+ 4    142       37.4   5.4         96                                  167
+ 5    139       NA    NA           55                                   73
+ 6    130       39.7  12.2         38                                  180
+ 7    137       34.9   7.2         80                                  104
+ 8    120       22.4   9.8         98                                  109
+ 9    139       39.7   7.9         68                                  126
+10    135       25.5  17.9         94                                  118
+   non_invasive_blood_pressure_diastolic respiratory_rate temperature_fahrenheit
+                                   &lt;dbl&gt;            &lt;dbl&gt;                  &lt;dbl&gt;
+ 1                                    48               24                   98.7
+ 2                                    77               23                   98  
+ 3                                    90               18                   98.5
+ 4                                    95               11                   97.6
+ 5                                    56               19                   97.7
+ 6                                    12               10                   98.1
+ 7                                    70               14                   97.2
+ 8                                    65               23                   97.7
+ 9                                    61               18                   95.9
+10                                    51               18                   96.9
 # ℹ 73,171 more rows</code></pre>
 </div>
 </div>
@@ -3640,7 +3620,7 @@ ORDER BY is ignored in subqueries without LIMIT
 <span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">first_careunit =</span> <span class="fu">fct_lump</span>(first_careunit, <span class="at">n =</span> <span class="dv">4</span>),</span>
 <span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">last_careunit =</span> <span class="fu">fct_lump</span>(last_careunit, <span class="at">n =</span> <span class="dv">4</span>),</span>
 <span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">admission_type =</span> <span class="fu">fct_lump</span>(admission_type, <span class="at">n =</span> <span class="dv">4</span>),</span>
-<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">admission_location =</span> <span class="fu">fct_lump</span>(admission_location, <span class="at">n =</span> <span class="dv">4</span>),</span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">admission_location =</span> <span class="fu">fct_lump</span>(admission_location, <span class="at">n =</span> <span class="dv">3</span>),</span>
 <span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">discharge_location =</span> <span class="fu">fct_lump</span>(discharge_location, <span class="at">n =</span> <span class="dv">4</span>)) <span class="sc">|&gt;</span></span>
 <span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">race =</span> <span class="fu">fct_collapse</span>(race, </span>
 <span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>                             <span class="st">&quot;ASIAN&quot;</span> <span class="ot">=</span> <span class="fu">str_subset</span>(mimic_icu_cohort<span class="sc">$</span>race, </span>
@@ -3651,7 +3631,7 @@ ORDER BY is ignored in subqueries without LIMIT
 <span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a>                                                     <span class="st">&quot;HISPANIC&quot;</span>),</span>
 <span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a>                             <span class="st">&quot;WHITE&quot;</span> <span class="ot">=</span> <span class="fu">str_subset</span>(mimic_icu_cohort<span class="sc">$</span>race, </span>
 <span id="cb29-17"><a href="#cb29-17" aria-hidden="true" tabindex="-1"></a>                                                  <span class="st">&quot;WHITE&quot;</span>), </span>
-<span id="cb29-18"><a href="#cb29-18" aria-hidden="true" tabindex="-1"></a>                             <span class="at">other_level =</span> <span class="st">&quot;OTHER&quot;</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb29-18"><a href="#cb29-18" aria-hidden="true" tabindex="-1"></a>                             <span class="at">other_level =</span> <span class="st">&quot;Other&quot;</span>)) <span class="sc">|&gt;</span></span>
 <span id="cb29-19"><a href="#cb29-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">los_long =</span> los <span class="sc">&gt;=</span> <span class="dv">2</span>)</span>
 <span id="cb29-20"><a href="#cb29-20" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb29-21"><a href="#cb29-21" aria-hidden="true" tabindex="-1"></a></span>
@@ -3662,20 +3642,20 @@ ORDER BY is ignored in subqueries without LIMIT
 <span id="cb29-26"><a href="#cb29-26" aria-hidden="true" tabindex="-1"></a>                         anchor_year_group))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 
-<div id="bjncmtjktt" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#bjncmtjktt table {
+<div id="qkgvhrqghm" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#qkgvhrqghm table {
 font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 -webkit-font-smoothing: antialiased;
 -moz-osx-font-smoothing: grayscale;
 }
-#bjncmtjktt thead, #bjncmtjktt tbody, #bjncmtjktt tfoot, #bjncmtjktt tr, #bjncmtjktt td, #bjncmtjktt th {
+#qkgvhrqghm thead, #qkgvhrqghm tbody, #qkgvhrqghm tfoot, #qkgvhrqghm tr, #qkgvhrqghm td, #qkgvhrqghm th {
 border-style: none;
 }
-#bjncmtjktt p {
+#qkgvhrqghm p {
 margin: 0;
 padding: 0;
 }
-#bjncmtjktt .gt_table {
+#qkgvhrqghm .gt_table {
 display: table;
 border-collapse: collapse;
 line-height: normal;
@@ -3700,11 +3680,11 @@ border-left-style: none;
 border-left-width: 2px;
 border-left-color: #D3D3D3;
 }
-#bjncmtjktt .gt_caption {
+#qkgvhrqghm .gt_caption {
 padding-top: 4px;
 padding-bottom: 4px;
 }
-#bjncmtjktt .gt_title {
+#qkgvhrqghm .gt_title {
 color: #333333;
 font-size: 125%;
 font-weight: initial;
@@ -3715,7 +3695,7 @@ padding-right: 5px;
 border-bottom-color: #FFFFFF;
 border-bottom-width: 0;
 }
-#bjncmtjktt .gt_subtitle {
+#qkgvhrqghm .gt_subtitle {
 color: #333333;
 font-size: 85%;
 font-weight: initial;
@@ -3726,7 +3706,7 @@ padding-right: 5px;
 border-top-color: #FFFFFF;
 border-top-width: 0;
 }
-#bjncmtjktt .gt_heading {
+#qkgvhrqghm .gt_heading {
 background-color: #FFFFFF;
 text-align: center;
 border-bottom-color: #FFFFFF;
@@ -3737,12 +3717,12 @@ border-right-style: none;
 border-right-width: 1px;
 border-right-color: #D3D3D3;
 }
-#bjncmtjktt .gt_bottom_border {
+#qkgvhrqghm .gt_bottom_border {
 border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
 }
-#bjncmtjktt .gt_col_headings {
+#qkgvhrqghm .gt_col_headings {
 border-top-style: solid;
 border-top-width: 2px;
 border-top-color: #D3D3D3;
@@ -3756,7 +3736,7 @@ border-right-style: none;
 border-right-width: 1px;
 border-right-color: #D3D3D3;
 }
-#bjncmtjktt .gt_col_heading {
+#qkgvhrqghm .gt_col_heading {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -3775,7 +3755,7 @@ padding-left: 5px;
 padding-right: 5px;
 overflow-x: hidden;
 }
-#bjncmtjktt .gt_column_spanner_outer {
+#qkgvhrqghm .gt_column_spanner_outer {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -3786,13 +3766,13 @@ padding-bottom: 0;
 padding-left: 4px;
 padding-right: 4px;
 }
-#bjncmtjktt .gt_column_spanner_outer:first-child {
+#qkgvhrqghm .gt_column_spanner_outer:first-child {
 padding-left: 0;
 }
-#bjncmtjktt .gt_column_spanner_outer:last-child {
+#qkgvhrqghm .gt_column_spanner_outer:last-child {
 padding-right: 0;
 }
-#bjncmtjktt .gt_column_spanner {
+#qkgvhrqghm .gt_column_spanner {
 border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
@@ -3803,10 +3783,10 @@ overflow-x: hidden;
 display: inline-block;
 width: 100%;
 }
-#bjncmtjktt .gt_spanner_row {
+#qkgvhrqghm .gt_spanner_row {
 border-bottom-style: hidden;
 }
-#bjncmtjktt .gt_group_heading {
+#qkgvhrqghm .gt_group_heading {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -3831,7 +3811,7 @@ border-right-color: #D3D3D3;
 vertical-align: middle;
 text-align: left;
 }
-#bjncmtjktt .gt_empty_group_heading {
+#qkgvhrqghm .gt_empty_group_heading {
 padding: 0.5px;
 color: #333333;
 background-color: #FFFFFF;
@@ -3845,13 +3825,13 @@ border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
 vertical-align: middle;
 }
-#bjncmtjktt .gt_from_md > :first-child {
+#qkgvhrqghm .gt_from_md > :first-child {
 margin-top: 0;
 }
-#bjncmtjktt .gt_from_md > :last-child {
+#qkgvhrqghm .gt_from_md > :last-child {
 margin-bottom: 0;
 }
-#bjncmtjktt .gt_row {
+#qkgvhrqghm .gt_row {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -3869,7 +3849,7 @@ border-right-color: #D3D3D3;
 vertical-align: middle;
 overflow-x: hidden;
 }
-#bjncmtjktt .gt_stub {
+#qkgvhrqghm .gt_stub {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -3881,7 +3861,7 @@ border-right-color: #D3D3D3;
 padding-left: 5px;
 padding-right: 5px;
 }
-#bjncmtjktt .gt_stub_row_group {
+#qkgvhrqghm .gt_stub_row_group {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -3894,13 +3874,13 @@ padding-left: 5px;
 padding-right: 5px;
 vertical-align: top;
 }
-#bjncmtjktt .gt_row_group_first td {
+#qkgvhrqghm .gt_row_group_first td {
 border-top-width: 2px;
 }
-#bjncmtjktt .gt_row_group_first th {
+#qkgvhrqghm .gt_row_group_first th {
 border-top-width: 2px;
 }
-#bjncmtjktt .gt_summary_row {
+#qkgvhrqghm .gt_summary_row {
 color: #333333;
 background-color: #FFFFFF;
 text-transform: inherit;
@@ -3909,14 +3889,14 @@ padding-bottom: 8px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#bjncmtjktt .gt_first_summary_row {
+#qkgvhrqghm .gt_first_summary_row {
 border-top-style: solid;
 border-top-color: #D3D3D3;
 }
-#bjncmtjktt .gt_first_summary_row.thick {
+#qkgvhrqghm .gt_first_summary_row.thick {
 border-top-width: 2px;
 }
-#bjncmtjktt .gt_last_summary_row {
+#qkgvhrqghm .gt_last_summary_row {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -3925,7 +3905,7 @@ border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
 }
-#bjncmtjktt .gt_grand_summary_row {
+#qkgvhrqghm .gt_grand_summary_row {
 color: #333333;
 background-color: #FFFFFF;
 text-transform: inherit;
@@ -3934,7 +3914,7 @@ padding-bottom: 8px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#bjncmtjktt .gt_first_grand_summary_row {
+#qkgvhrqghm .gt_first_grand_summary_row {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -3943,7 +3923,7 @@ border-top-style: double;
 border-top-width: 6px;
 border-top-color: #D3D3D3;
 }
-#bjncmtjktt .gt_last_grand_summary_row_top {
+#qkgvhrqghm .gt_last_grand_summary_row_top {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -3952,10 +3932,10 @@ border-bottom-style: double;
 border-bottom-width: 6px;
 border-bottom-color: #D3D3D3;
 }
-#bjncmtjktt .gt_striped {
+#qkgvhrqghm .gt_striped {
 background-color: rgba(128, 128, 128, 0.05);
 }
-#bjncmtjktt .gt_table_body {
+#qkgvhrqghm .gt_table_body {
 border-top-style: solid;
 border-top-width: 2px;
 border-top-color: #D3D3D3;
@@ -3963,7 +3943,7 @@ border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
 }
-#bjncmtjktt .gt_footnotes {
+#qkgvhrqghm .gt_footnotes {
 color: #333333;
 background-color: #FFFFFF;
 border-bottom-style: none;
@@ -3976,7 +3956,7 @@ border-right-style: none;
 border-right-width: 2px;
 border-right-color: #D3D3D3;
 }
-#bjncmtjktt .gt_footnote {
+#qkgvhrqghm .gt_footnote {
 margin: 0px;
 font-size: 90%;
 padding-top: 4px;
@@ -3984,7 +3964,7 @@ padding-bottom: 4px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#bjncmtjktt .gt_sourcenotes {
+#qkgvhrqghm .gt_sourcenotes {
 color: #333333;
 background-color: #FFFFFF;
 border-bottom-style: none;
@@ -3997,57 +3977,57 @@ border-right-style: none;
 border-right-width: 2px;
 border-right-color: #D3D3D3;
 }
-#bjncmtjktt .gt_sourcenote {
+#qkgvhrqghm .gt_sourcenote {
 font-size: 90%;
 padding-top: 4px;
 padding-bottom: 4px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#bjncmtjktt .gt_left {
+#qkgvhrqghm .gt_left {
 text-align: left;
 }
-#bjncmtjktt .gt_center {
+#qkgvhrqghm .gt_center {
 text-align: center;
 }
-#bjncmtjktt .gt_right {
+#qkgvhrqghm .gt_right {
 text-align: right;
 font-variant-numeric: tabular-nums;
 }
-#bjncmtjktt .gt_font_normal {
+#qkgvhrqghm .gt_font_normal {
 font-weight: normal;
 }
-#bjncmtjktt .gt_font_bold {
+#qkgvhrqghm .gt_font_bold {
 font-weight: bold;
 }
-#bjncmtjktt .gt_font_italic {
+#qkgvhrqghm .gt_font_italic {
 font-style: italic;
 }
-#bjncmtjktt .gt_super {
+#qkgvhrqghm .gt_super {
 font-size: 65%;
 }
-#bjncmtjktt .gt_footnote_marks {
+#qkgvhrqghm .gt_footnote_marks {
 font-size: 75%;
 vertical-align: 0.4em;
 position: initial;
 }
-#bjncmtjktt .gt_asterisk {
+#qkgvhrqghm .gt_asterisk {
 font-size: 100%;
 vertical-align: 0;
 }
-#bjncmtjktt .gt_indent_1 {
+#qkgvhrqghm .gt_indent_1 {
 text-indent: 5px;
 }
-#bjncmtjktt .gt_indent_2 {
+#qkgvhrqghm .gt_indent_2 {
 text-indent: 10px;
 }
-#bjncmtjktt .gt_indent_3 {
+#qkgvhrqghm .gt_indent_3 {
 text-indent: 15px;
 }
-#bjncmtjktt .gt_indent_4 {
+#qkgvhrqghm .gt_indent_4 {
 text-indent: 20px;
 }
-#bjncmtjktt .gt_indent_5 {
+#qkgvhrqghm .gt_indent_5 {
 text-indent: 25px;
 }
 </style>
@@ -4129,12 +4109,9 @@ text-indent: 25px;
     <tr><td headers="label" class="gt_row gt_left">    TRANSFER FROM HOSPITAL</td>
 <td headers="stat_1" class="gt_row gt_center">6,839 (18%)</td>
 <td headers="stat_2" class="gt_row gt_center">8,959 (26%)</td></tr>
-    <tr><td headers="label" class="gt_row gt_left">    WALK-IN/SELF REFERRAL</td>
-<td headers="stat_1" class="gt_row gt_center">876 (2.3%)</td>
-<td headers="stat_2" class="gt_row gt_center">791 (2.3%)</td></tr>
     <tr><td headers="label" class="gt_row gt_left">    Other</td>
-<td headers="stat_1" class="gt_row gt_center">1,747 (4.6%)</td>
-<td headers="stat_2" class="gt_row gt_center">1,690 (4.8%)</td></tr>
+<td headers="stat_1" class="gt_row gt_center">2,623 (6.9%)</td>
+<td headers="stat_2" class="gt_row gt_center">2,481 (7.1%)</td></tr>
     <tr><td headers="label" class="gt_row gt_left">discharge_location</td>
 <td headers="stat_1" class="gt_row gt_center"><br></td>
 <td headers="stat_2" class="gt_row gt_center"><br></td></tr>
@@ -4210,7 +4187,7 @@ text-indent: 25px;
     <tr><td headers="label" class="gt_row gt_left">    WHITE</td>
 <td headers="stat_1" class="gt_row gt_center">25,939 (68%)</td>
 <td headers="stat_2" class="gt_row gt_center">23,630 (67%)</td></tr>
-    <tr><td headers="label" class="gt_row gt_left">    OTHER</td>
+    <tr><td headers="label" class="gt_row gt_left">    Other</td>
 <td headers="stat_1" class="gt_row gt_center">5,160 (14%)</td>
 <td headers="stat_2" class="gt_row gt_center">5,596 (16%)</td></tr>
     <tr><td headers="label" class="gt_row gt_left">hospital_expire_flag</td>
@@ -4258,7 +4235,7 @@ text-indent: 25px;
     <tr><td headers="label" class="gt_row gt_left">    Unknown</td>
 <td headers="stat_1" class="gt_row gt_center">4,282</td>
 <td headers="stat_2" class="gt_row gt_center">4,817</td></tr>
-    <tr><td headers="label" class="gt_row gt_left">potassium </td>
+    <tr><td headers="label" class="gt_row gt_left">potassium</td>
 <td headers="stat_1" class="gt_row gt_center">4.20 (3.80, 4.60)</td>
 <td headers="stat_2" class="gt_row gt_center">4.20 (3.80, 4.70)</td></tr>
     <tr><td headers="label" class="gt_row gt_left">    Unknown</td>
@@ -4288,13 +4265,13 @@ text-indent: 25px;
     <tr><td headers="label" class="gt_row gt_left">    Unknown</td>
 <td headers="stat_1" class="gt_row gt_center">17</td>
 <td headers="stat_2" class="gt_row gt_center">1</td></tr>
-    <tr><td headers="label" class="gt_row gt_left">non-invasive_blood_pressure_systolic</td>
+    <tr><td headers="label" class="gt_row gt_left">non_invasive_blood_pressure_systolic</td>
 <td headers="stat_1" class="gt_row gt_center">122 (107, 139)</td>
 <td headers="stat_2" class="gt_row gt_center">120 (104, 138)</td></tr>
     <tr><td headers="label" class="gt_row gt_left">    Unknown</td>
 <td headers="stat_1" class="gt_row gt_center">732</td>
 <td headers="stat_2" class="gt_row gt_center">247</td></tr>
-    <tr><td headers="label" class="gt_row gt_left">non-invasive_blood_pressure_diastolic</td>
+    <tr><td headers="label" class="gt_row gt_left">non_invasive_blood_pressure_diastolic</td>
 <td headers="stat_1" class="gt_row gt_center">68 (58, 80)</td>
 <td headers="stat_2" class="gt_row gt_center">66 (55, 79)</td></tr>
     <tr><td headers="label" class="gt_row gt_left">    Unknown</td>
@@ -4306,7 +4283,7 @@ text-indent: 25px;
     <tr><td headers="label" class="gt_row gt_left">    Unknown</td>
 <td headers="stat_1" class="gt_row gt_center">87</td>
 <td headers="stat_2" class="gt_row gt_center">11</td></tr>
-    <tr><td headers="label" class="gt_row gt_left">fahrenheit_temperature</td>
+    <tr><td headers="label" class="gt_row gt_left">temperature_fahrenheit</td>
 <td headers="stat_1" class="gt_row gt_center">98.10 (97.60, 98.60)</td>
 <td headers="stat_2" class="gt_row gt_center">98.20 (97.60, 98.80)</td></tr>
     <tr><td headers="label" class="gt_row gt_left">    Unknown</td>

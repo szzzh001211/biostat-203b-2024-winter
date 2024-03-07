@@ -110,7 +110,7 @@ mimic_ui <- fluidPage(
                  # Input: Text for providing a patient ID
                  selectizeInput(inputId = "patient_id",
                                 label = "Enter Patient ID:",
-                                choices = NULL, multiple = FALSE),
+                                choices = NULL),
                  
                  # Input: Selector for choosing a type of information
                  selectInput(inputId = "info_type",
@@ -138,11 +138,10 @@ mimic_ui <- fluidPage(
 mimic_server <- function(input, output, session) {
   
   # select patient id based on the input
-  observe({
-    updateSelectizeInput(session, "patient_id",
-                         server = TRUE,
-                         choices = unique(mimic$subject_id))
-  })
+  updateSelectizeInput(session, "patient_id", 
+                       server = TRUE, 
+                       choices = unique(mimic$subject_id), 
+                       selected = 10001217)
   
   
   # create ractive data
@@ -327,7 +326,9 @@ mimic_server <- function(input, output, session) {
                              seq(1, length(
                                unique(procedure_info$short_title)))) +
         labs(shape = "Procedure", y = "") +
-        guides(shape = guide_legend(nrow = 5)) +
+        guides(shape = guide_legend(ncol = 2, order = 1),
+               color = guide_legend(ncol = 2, order = 2),
+               linewidth = FALSE) +
         theme(legend.position = "bottom", legend.box = "vertical",
               text = element_text(size = 8))
       

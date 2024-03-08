@@ -113,7 +113,7 @@ mimic_ui <- fluidPage(
                                    label = "Patient ID:", 
                                    options = 
                                      as.character(unique(mimic$subject_id)),
-                                   max_options = 10, create = TRUE),
+                                   max_options = 10),
                  
                  # Input: Selector for choosing a type of information
                  selectInput(inputId = "info_type",
@@ -138,7 +138,7 @@ mimic_ui <- fluidPage(
 
 
 
-mimic_server <- function(input, output, session) {
+mimic_server <- function(input, output) {
   
   # create ractive data
   filtered_data <- reactive({

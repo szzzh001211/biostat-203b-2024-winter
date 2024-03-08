@@ -3,6 +3,7 @@ library(dbplyr)
 library(DBI)
 library(tidyverse)
 library(shiny)
+library(dqshiny)
 
 mimic <- readRDS("mimic_icu_cohort.rds") |>
   mutate(race = as_factor(race), insurance = as_factor(insurance),
@@ -108,9 +109,11 @@ mimic_ui <- fluidPage(
                sidebarPanel(
                  
                  # Input: Text for providing a patient ID
-                 selectizeInput(inputId = "patient_id",
-                                label = "Enter Patient ID:",
-                                choices = NULL),
+                 autocomplete_input(id = "patient_id", 
+                                   label = "Patient ID:", 
+                                   options = 
+                                     as.character(unique(mimic$subject_id)),
+                                   max_options = 10, create = TRUE),
                  
                  # Input: Selector for choosing a type of information
                  selectInput(inputId = "info_type",
@@ -136,13 +139,6 @@ mimic_ui <- fluidPage(
 
 
 mimic_server <- function(input, output, session) {
-  
-  # select patient id based on the input
-  updateSelectizeInput(session, "patient_id", 
-                       server = TRUE, 
-                       choices = unique(mimic$subject_id), 
-                       selected = 10001217)
-  
   
   # create ractive data
   filtered_data <- reactive({

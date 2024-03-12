@@ -11,6 +11,8 @@ format:
     toc-depth: 4
     toc-location: left
     code-fold: false
+execute:
+  cache: true
 ---
 
 ## Predicting ICU duration
@@ -23,8 +25,9 @@ library(tidyverse)
 library(tidymodels)
 library(gtsummary)
 library(xgboost)
-library(kernlab)
 library(keras)
+library(vip)
+library(stacks)
 ```
 
 ```{r, eval=TRUE}
@@ -63,16 +66,112 @@ data_split <- initial_split(
 ```{r, eval=TRUE}
 mimic_train <- training(data_split) |>
   select(-subject_id, -hadm_id, -stay_id)
+head(mimic_train)
 dim(mimic_train)
 
 mimic_test <- testing(data_split) |>
   select(-subject_id, -hadm_id, -stay_id)
+head(mimic_test)
 dim(mimic_test)
 ```
 3. Train and tune the models using the training set.
 
 **Interpretation:** There are missing values in `marital status`, all lab measurements and first vital measurements. Missing proportion is not high but there are some outliers, so we will use simple median imputation for all numerical features and mode 
-imputation for `marital status`. First we use `xgboost` and the workflow is as follows:
+imputation for `marital status`. **First we use `logstic regression` and the workflow is as follows:**
+```{r, eval=TRUE}
+# set recipe
+logit_recipe <- recipe(los_long ~ ., data = mimic_train) |>
+  
+  # impute missing values with mean
+  step_impute_median(bicarbonate, chloride, creatinine, glucose, potassium, 
+                       sodium, hematocrit, wbc, heart_rate, 
+                       non_invasive_blood_pressure_systolic, 
+                       non_invasive_blood_pressure_diastolic, respiratory_rate, 
+                       temperature_fahrenheit) |>
+  
+  # impute missing values with mode
+  step_impute_mode(marital_status) |>
+  
+  # create traditional dummy variables
+  step_dummy(all_nominal_predictors()) |>
+  
+  # zero-variance filter
+  step_zv(all_numeric_predictors()) |> 
+  
+  # center and scale numeric data
+  step_normalize(all_numeric_predictors()) |>
+  
+  print()
+```
+
+```{r, eval=TRUE}
+# logistic regression
+logit_mod <- 
+  logistic_reg(
+    penalty = tune(), 
+    mixture = tune()
+  ) |> 
+  set_engine("glmnet", standardize = FALSE)
+
+logit_wf <- workflow() |>
+  add_recipe(logit_recipe) |>
+  add_model(logit_mod)
+```
+
+```{r, eval=TRUE}
+param_grid <- grid_regular(
+  penalty(range = c(-5, 1)), 
+  mixture(),
+  levels = c(100, 5)
+  )
+param_grid
+```
+
+```{r, eval=TRUE}
+set.seed(203)
+
+folds <- vfold_cv(mimic_train, v = 5)
+
+logit_fit <- logit_wf |>
+  tune_grid(
+    resamples = folds,
+    grid = param_grid,
+    metrics = metric_set(roc_auc, accuracy)
+    )
+```
+
+```{r, eval=TRUE}
+logit_fit |>
+  # aggregate metrics from K folds
+  collect_metrics() |>
+  print(width = Inf) |>
+  filter(.metric == "roc_auc") |>
+  ggplot(mapping = aes(x = penalty, y = mean, color = factor(mixture))) +
+  geom_point() +
+  labs(x = "Penalty", y = "CV AUC") +
+  scale_x_log10()
+
+best_logit <- logit_fit |>
+  select_best("roc_auc")
+
+best_logit
+
+final_wf_logit <- logit_wf |>
+  finalize_workflow(best_logit)
+
+final_fit_logit <- 
+  final_wf_logit |>
+  last_fit(data_split)
+
+final_fit_logit |> 
+  collect_metrics()
+
+
+```
+**Answer:** When `fold` = 5, the best model has `penalty`, 0.000869749 and `mixture`, 0.5. The best model has a `roc_auc` value of 0.594 and an `accuracy` of 0.572.
+
+
+**Second we use `xgboost` and the workflow is as follows:**
 ```{r, eval=TRUE}
 # set recipe
 gb_recipe <- recipe(los_long ~ ., data = mimic_train) |>
@@ -134,7 +233,9 @@ gb_fit <- gb_wf |>
     grid = param_grid,
     metrics = metric_set(roc_auc, accuracy)
     )
+```
 
+```{r, eval=TRUE}
 gb_fit |>
   collect_metrics() |>
   print(width = Inf) |>
@@ -143,123 +244,28 @@ gb_fit |>
   geom_point() +
   labs(x = "Learning Rate", y = "CV AUC") +
   scale_x_log10()
-```
 
-```{r, eval=TRUE}
 best_gb <- gb_fit |>
   select_best("roc_auc")
 
 best_gb
 
-final_wf <- gb_wf |>
+final_wf_gb <- gb_wf |>
   finalize_workflow(best_gb)
 
-final_fit <- 
-  final_wf |>
+final_fit_gb <- 
+  final_wf_gb |>
   last_fit(data_split)
 
-final_fit |> 
-  collect_metrics()
-```
-**Answer:** When `fold` = 5, the best `learning rate` is 0.0658 and the best `tree depth` is 4. The best model has a `roc_auc` value of 0.636 and an `accuracy` of 0.596.
-
-
-**Interpretation:** Second we use `svm` and the workflow is as follows:
-```{r, eval=TRUE}
-# set recipe
-svm_recipe <- recipe(los_long ~ ., data = mimic_train) |>
-  
-  # impute missing values with mean
-  step_impute_median(bicarbonate, chloride, creatinine, glucose, potassium, 
-                       sodium, hematocrit, wbc, heart_rate, 
-                       non_invasive_blood_pressure_systolic, 
-                       non_invasive_blood_pressure_diastolic, respiratory_rate, 
-                       temperature_fahrenheit) |>
-  
-  # impute missing values with mode
-  step_impute_mode(marital_status) |>
-  
-  # create traditional dummy variables
-  step_dummy(all_nominal_predictors()) |>
-  
-  # zero-variance filter
-  step_zv(all_numeric_predictors()) |> 
-  
-  # center and scale numeric data
-  step_normalize(all_numeric_predictors()) |>
-  
-  print()
-
-```
-
-```{r, eval=TRUE}
-# svm
-svm_mod <- 
-  svm_rbf(
-    mode = "classification",
-    cost = tune(),
-    rbf_sigma = tune()
-  ) |> 
-  set_engine("kernlab")
-
-svm_wf <- workflow() |>
-  add_recipe(svm_recipe) |>
-  add_model(svm_mod)
-```
-
-```{r, eval=TRUE}
-param_grid <- grid_regular(
-  cost(range = c(-5, -3)),
-  rbf_sigma(range = c(-3, -1)),
-  levels = c(3, 5)
-  )
-
-param_grid
-```
-
-```{r, eval=TRUE}
-set.seed(203)
-
-folds <- vfold_cv(mimic_train, v = 3)
-
-svm_fit <- svm_wf |>
-  tune_grid(
-    resamples = folds,
-    grid = param_grid,
-    metrics = metric_set(roc_auc, accuracy)
-    )
-
-svm_fit |>
-  collect_metrics() |>
-  print(width = Inf) |>
-  filter(.metric == "roc_auc") |>
-  ggplot(mapping = aes(x = cost, y = mean, color = factor(rbf_sigma))) +
-  geom_point() +
-  labs(x = "Cost", y = "CV AUC") +
-  scale_x_log10()
-```
-
-```{r, eval=TRUE}
-best_svm <- svm_fit |>
-  select_best("roc_auc")
-
-best_svm
-
-final_wf <- svm_wf |>
-  finalize_workflow(best_svm)
-
-final_fit <-
-  final_wf |>
-  last_fit(data_split)
-
-final_fit |>
+final_fit_gb |> 
   collect_metrics()
 
 ```
-**Answer:** When `fold` = 3, the best `cost` is 0.125 and the best `rbf_sigma` is 0.0316. The best model has a `roc_auc` value of 0.617 and an `accuracy` of 0.585.
+**Answer:** When `fold` = 5, the best model has `learning rate`, 0.0658 and `tree depth`, 4. The best model has a `roc_auc` value of 0.636 and an `accuracy` of 0.596.
 
 
-**Interpretation:** Third we use `MLP` and the workflow is as follows:
+
+**Third we use `MLP` and the workflow is as follows:**
 ```{r, eval=TRUE}
 # set recipe
 mlp_recipe <- recipe(los_long ~ ., data = mimic_train) |>
@@ -293,7 +299,7 @@ mlp_mod <-
     mode = "classification",
     hidden_units = tune(),
     dropout = tune(),
-    epochs = 40,
+    epochs = 30,
   ) |> 
   set_engine("keras", verbose = 0)
 
@@ -304,8 +310,8 @@ mlp_wf <- workflow() |>
 
 ```{r, eval=TRUE}
 param_grid <- grid_regular(
-  hidden_units(range = c(5, 25)),
-  dropout(range = c(0, 0.6)),
+  hidden_units(range = c(1, 20)),
+  dropout(range = c(0, 0.5)),
   levels = 5
   )
 param_grid
@@ -322,7 +328,9 @@ mlp_fit <- mlp_wf |>
     grid = param_grid,
     metrics = metric_set(roc_auc, accuracy)
     )
+```
 
+```{r, eval=TRUE}
 mlp_fit |>
   collect_metrics() |>
   print(width = Inf) |>
@@ -331,24 +339,159 @@ mlp_fit |>
   geom_point() +
   labs(x = "Dropout Rate", y = "CV AUC") +
   scale_x_log10()
-```
 
-```{r, eval=TRUE}
 best_mlp <- mlp_fit |>
   select_best("roc_auc")
 
 best_mlp
 
-final_wf <- mlp_wf |>
+final_wf_mlp <- mlp_wf |>
   finalize_workflow(best_mlp)
 
-final_fit <- 
-  final_wf |>
+final_fit_mlp <- 
+  final_wf_mlp |>
   last_fit(data_split)
 
-final_fit |> 
+final_fit_mlp |> 
   collect_metrics()
+
 ```
-**Answer:** When `fold` = 3 and `epochs` = 30, the best `hidden_units` is 10 and the best `dropout` is 0. The best model has a `roc_auc` value of 0.615 and an `accuracy` of 0.584.
+**Answer:** When `fold` = 2 and `epochs` = 30, the best model has `hidden_units`, 10 and `dropout`, 0. The best model has a `roc_auc` value of 0.617 and an `accuracy` of 0.585.
 
 4. Compare model classification performance on the test set. Report both the area under ROC curve and accuracy for each machine learning algorithm and the model stacking. Interpret the results. What are the most important features in predicting long ICU stays? How do the models compare in terms of performance and interpretability?
+
+```{r, eval=TRUE}
+set.seed(203)
+folds <- vfold_cv(mimic_train, v = 2)
+
+logit_grid <- grid_regular(
+  penalty(range = c(-5, 1)), 
+  mixture(),
+  levels = c(100, 5)
+  )
+
+gb_grid <- grid_regular(
+  tree_depth(range = c(1L, 4L)),
+  learn_rate(range = c(-3, -0.5), trans = log10_trans()),
+  levels = c(4, 12)
+  )
+
+mlp_grid <- grid_regular(
+  hidden_units(range = c(1, 20)),
+  dropout(range = c(0, 0.5)),
+  levels = 5
+  )
+
+logit_res <- 
+  tune_grid(
+    object = logit_wf, 
+    resamples = folds, 
+    grid = logit_grid,
+    control = control_stack_grid()
+  )
+
+
+```
+
+```{r, eval=TRUE}
+gb_res <-
+  tune_grid(
+    object = gb_wf, 
+    resamples = folds, 
+    grid = gb_grid,
+    control = control_stack_grid()
+  )
+```
+
+```{r, eval=TRUE}
+mlp_res <-
+  tune_grid(
+    object = mlp_wf, 
+    resamples = folds, 
+    grid = mlp_grid,
+    control = control_stack_grid()
+  )
+```
+
+```{r, eval=TRUE}
+mimic_model_st <- 
+  # initialize the stack
+  stacks() |>
+  # add candidate members
+  add_candidates(logit_res) |>
+  add_candidates(gb_res) |>
+  add_candidates(mlp_res) |>
+  # determine how to combine their predictions
+  blend_predictions(
+    penalty = 10^(-5:1),
+    metrics = c("roc_auc"), 
+    times = 3
+    ) |>
+  # fit the candidates with nonzero stacking coefficients
+  fit_members()
+```
+
+```{r, eval=TRUE}
+mimic_model_st
+
+autoplot(mimic_model_st)
+
+autoplot(mimic_model_st, type = "weights")
+```
+
+```{r, eval=TRUE}
+mimic_pred <- mimic_test |>
+  bind_cols(predict(mimic_model_st, ., type = "prob")) |>
+  mutate(predicted = if_else(.pred_Yes > 0.5, "FALSE", "TRUE")) |>
+  print(width = Inf)
+```
+
+```{r, eval=TRUE}
+final_fit_logit |> 
+  collect_metrics() |>
+  select(.metric, .estimate)
+
+final_fit_gb |> 
+  collect_metrics() |>
+  select(.metric, .estimate)
+
+final_fit_mlp |> 
+  collect_metrics() |>
+  select(.metric, .estimate)
+
+yardstick::accuracy(
+  mimic_pred,
+  truth = los_long,
+  estimate = predicted
+  )
+
+yardstick::roc_auc(
+  mimic_pred,
+  truth = los_long,
+  contains(".pred_Yes")
+  )
+```
+
+```{r, eval=TRUE}
+# feature importance
+
+final_fit_logit |> 
+  extract_fit_parsnip() |>
+  vip()
+
+final_fit_gb |> 
+  extract_fit_parsnip() |>
+  vip()
+
+final_fit_mlp |> 
+  extract_fit_parsnip() |>
+  vip()
+
+
+```
+
+
+
+
+
+

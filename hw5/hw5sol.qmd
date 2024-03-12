@@ -18,10 +18,34 @@ format:
 Using the ICU cohort `mimiciv_icu_cohort.rds` you built in Homework 4, develop at least three machine learning approaches (logistic regression with enet regularization, random forest, boosting, SVM, MLP, etc) plus a model stacking approach for predicting whether a patient's ICU stay will be longer than 2 days. You should use the `los_long` variable as the outcome. You algorithms can use patient demographic information (gender, age at ICU `intime`, marital status, race), ICU admission information (first care unit), the last lab measurements before the ICU stay, and first vital measurements during ICU stay as features. You are welcome to use any feature engineering techniques you think are appropriate; but make sure to not use features that are not available at an ICU stay's `intime`. For instance, `last_careunit` cannot be used in your algorithms. 
 
 1. Data preprocessing and feature engineering.
+```{r, eval=TRUE}
+library(tidyverse)
+library(tidymodels)
+library(gtsummary)
+library(xgboost)
+library(kernlab)
+library(keras)
+```
+
+```{r, eval=TRUE}
+mimiciv_icu_cohort <- readRDS("mimic_icu_cohort.rds") |>
+  select(subject_id, hadm_id, stay_id, first_careunit, gender, race, 
+         marital_status, age_intime, bicarbonate, chloride, creatinine, 
+         glucose, potassium, sodium, hematocrit, wbc, heart_rate, 
+         non_invasive_blood_pressure_systolic, 
+         non_invasive_blood_pressure_diastolic, respiratory_rate, 
+         temperature_fahrenheit, los_long) |>
+  mutate(race = as.character(race), 
+         first_careunit = as.character(first_careunit), 
+         los_long = as.factor(los_long))
+
+mimiciv_icu_cohort |> tbl_summary(by = los_long, include = -c(subject_id, 
+                                                              hadm_id, 
+                                                              stay_id))
+```
 
 2. Partition data into 50% training set and 50% test set. Stratify partitioning according to `los_long`. For grading purpose, sort the data by `subject_id`, `hadm_id`, and `stay_id` and use the seed `203` for the initial data split. Below is the sample code.
-```{r}
-#| eval: false
+```{r, eval=TRUE}
 set.seed(203)
 
 # sort
@@ -36,6 +60,295 @@ data_split <- initial_split(
   )
 ```
 
+```{r, eval=TRUE}
+mimic_train <- training(data_split) |>
+  select(-subject_id, -hadm_id, -stay_id)
+dim(mimic_train)
+
+mimic_test <- testing(data_split) |>
+  select(-subject_id, -hadm_id, -stay_id)
+dim(mimic_test)
+```
 3. Train and tune the models using the training set.
+
+**Interpretation:** There are missing values in `marital status`, all lab measurements and first vital measurements. Missing proportion is not high but there are some outliers, so we will use simple median imputation for all numerical features and mode 
+imputation for `marital status`. First we use `xgboost` and the workflow is as follows:
+```{r, eval=TRUE}
+# set recipe
+gb_recipe <- recipe(los_long ~ ., data = mimic_train) |>
+  
+  # impute missing values with mean
+  step_impute_median(bicarbonate, chloride, creatinine, glucose, potassium, 
+                       sodium, hematocrit, wbc, heart_rate, 
+                       non_invasive_blood_pressure_systolic, 
+                       non_invasive_blood_pressure_diastolic, respiratory_rate, 
+                       temperature_fahrenheit) |>
+  
+  # impute missing values with mode
+  step_impute_mode(marital_status) |>
+  
+  # create traditional dummy variables
+  step_dummy(all_nominal_predictors()) |>
+  
+  # zero-variance filter
+  step_zv(all_numeric_predictors()) |> 
+  
+  print()
+```
+
+```{r, eval=TRUE}
+# xgboost
+gb_mod <- 
+  boost_tree(
+    mode = "classification",
+    mtry = 9,
+    trees = 500, 
+    tree_depth = tune(),
+    learn_rate = tune()
+  ) |> 
+  set_engine("xgboost")
+
+gb_wf <- workflow() |>
+  add_recipe(gb_recipe) |>
+  add_model(gb_mod)
+```
+
+```{r, eval=TRUE}
+param_grid <- grid_regular(
+  tree_depth(range = c(1L, 4L)),
+  learn_rate(range = c(-3, -0.5), trans = log10_trans()),
+  levels = c(4, 12)
+  )
+
+param_grid
+```
+
+```{r, eval=TRUE}
+set.seed(203)
+
+folds <- vfold_cv(mimic_train, v = 5)
+
+gb_fit <- gb_wf |>
+  tune_grid(
+    resamples = folds,
+    grid = param_grid,
+    metrics = metric_set(roc_auc, accuracy)
+    )
+
+gb_fit |>
+  collect_metrics() |>
+  print(width = Inf) |>
+  filter(.metric == "roc_auc") |>
+  ggplot(mapping = aes(x = learn_rate, y = mean, color = factor(tree_depth))) +
+  geom_point() +
+  labs(x = "Learning Rate", y = "CV AUC") +
+  scale_x_log10()
+```
+
+```{r, eval=TRUE}
+best_gb <- gb_fit |>
+  select_best("roc_auc")
+
+best_gb
+
+final_wf <- gb_wf |>
+  finalize_workflow(best_gb)
+
+final_fit <- 
+  final_wf |>
+  last_fit(data_split)
+
+final_fit |> 
+  collect_metrics()
+```
+**Answer:** When `fold` = 5, the best `learning rate` is 0.0658 and the best `tree depth` is 4. The best model has a `roc_auc` value of 0.636 and an `accuracy` of 0.596.
+
+
+**Interpretation:** Second we use `svm` and the workflow is as follows:
+```{r, eval=TRUE}
+# set recipe
+svm_recipe <- recipe(los_long ~ ., data = mimic_train) |>
+  
+  # impute missing values with mean
+  step_impute_median(bicarbonate, chloride, creatinine, glucose, potassium, 
+                       sodium, hematocrit, wbc, heart_rate, 
+                       non_invasive_blood_pressure_systolic, 
+                       non_invasive_blood_pressure_diastolic, respiratory_rate, 
+                       temperature_fahrenheit) |>
+  
+  # impute missing values with mode
+  step_impute_mode(marital_status) |>
+  
+  # create traditional dummy variables
+  step_dummy(all_nominal_predictors()) |>
+  
+  # zero-variance filter
+  step_zv(all_numeric_predictors()) |> 
+  
+  # center and scale numeric data
+  step_normalize(all_numeric_predictors()) |>
+  
+  print()
+
+```
+
+```{r, eval=TRUE}
+# svm
+svm_mod <- 
+  svm_rbf(
+    mode = "classification",
+    cost = tune(),
+    rbf_sigma = tune()
+  ) |> 
+  set_engine("kernlab")
+
+svm_wf <- workflow() |>
+  add_recipe(svm_recipe) |>
+  add_model(svm_mod)
+```
+
+```{r, eval=TRUE}
+param_grid <- grid_regular(
+  cost(range = c(-5, -3)),
+  rbf_sigma(range = c(-3, -1)),
+  levels = c(3, 5)
+  )
+
+param_grid
+```
+
+```{r, eval=TRUE}
+set.seed(203)
+
+folds <- vfold_cv(mimic_train, v = 3)
+
+svm_fit <- svm_wf |>
+  tune_grid(
+    resamples = folds,
+    grid = param_grid,
+    metrics = metric_set(roc_auc, accuracy)
+    )
+
+svm_fit |>
+  collect_metrics() |>
+  print(width = Inf) |>
+  filter(.metric == "roc_auc") |>
+  ggplot(mapping = aes(x = cost, y = mean, color = factor(rbf_sigma))) +
+  geom_point() +
+  labs(x = "Cost", y = "CV AUC") +
+  scale_x_log10()
+```
+
+```{r, eval=TRUE}
+best_svm <- svm_fit |>
+  select_best("roc_auc")
+
+best_svm
+
+final_wf <- svm_wf |>
+  finalize_workflow(best_svm)
+
+final_fit <-
+  final_wf |>
+  last_fit(data_split)
+
+final_fit |>
+  collect_metrics()
+
+```
+**Answer:** When `fold` = 3, the best `cost` is 0.125 and the best `rbf_sigma` is 0.0316. The best model has a `roc_auc` value of 0.617 and an `accuracy` of 0.585.
+
+
+**Interpretation:** Third we use `MLP` and the workflow is as follows:
+```{r, eval=TRUE}
+# set recipe
+mlp_recipe <- recipe(los_long ~ ., data = mimic_train) |>
+  
+  # impute missing values with mean
+  step_impute_median(bicarbonate, chloride, creatinine, glucose, potassium, 
+                       sodium, hematocrit, wbc, heart_rate, 
+                       non_invasive_blood_pressure_systolic, 
+                       non_invasive_blood_pressure_diastolic, respiratory_rate, 
+                       temperature_fahrenheit) |>
+  
+  # impute missing values with mode
+  step_impute_mode(marital_status) |>
+  
+  # create traditional dummy variables
+  step_dummy(all_nominal_predictors()) |>
+  
+  # zero-variance filter
+  step_zv(all_numeric_predictors()) |> 
+  
+  # center and scale numeric data
+  step_normalize(all_numeric_predictors()) |>
+  
+  print()
+
+```
+
+```{r, eval=TRUE}
+mlp_mod <- 
+  mlp(
+    mode = "classification",
+    hidden_units = tune(),
+    dropout = tune(),
+    epochs = 40,
+  ) |> 
+  set_engine("keras", verbose = 0)
+
+mlp_wf <- workflow() |>
+  add_recipe(mlp_recipe) |>
+  add_model(mlp_mod)
+```
+
+```{r, eval=TRUE}
+param_grid <- grid_regular(
+  hidden_units(range = c(5, 25)),
+  dropout(range = c(0, 0.6)),
+  levels = 5
+  )
+param_grid
+```
+
+```{r, eval=TRUE}
+set.seed(203)
+
+folds <- vfold_cv(mimic_train, v = 2)
+
+mlp_fit <- mlp_wf |>
+  tune_grid(
+    resamples = folds,
+    grid = param_grid,
+    metrics = metric_set(roc_auc, accuracy)
+    )
+
+mlp_fit |>
+  collect_metrics() |>
+  print(width = Inf) |>
+  filter(.metric == "roc_auc") |>
+  ggplot(mapping = aes(x = dropout, y = mean, color = factor(hidden_units))) +
+  geom_point() +
+  labs(x = "Dropout Rate", y = "CV AUC") +
+  scale_x_log10()
+```
+
+```{r, eval=TRUE}
+best_mlp <- mlp_fit |>
+  select_best("roc_auc")
+
+best_mlp
+
+final_wf <- mlp_wf |>
+  finalize_workflow(best_mlp)
+
+final_fit <- 
+  final_wf |>
+  last_fit(data_split)
+
+final_fit |> 
+  collect_metrics()
+```
+**Answer:** When `fold` = 3 and `epochs` = 30, the best `hidden_units` is 10 and the best `dropout` is 0. The best model has a `roc_auc` value of 0.615 and an `accuracy` of 0.584.
 
 4. Compare model classification performance on the test set. Report both the area under ROC curve and accuracy for each machine learning algorithm and the model stacking. Interpret the results. What are the most important features in predicting long ICU stays? How do the models compare in terms of performance and interpretability?

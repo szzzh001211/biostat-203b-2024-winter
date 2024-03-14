@@ -30,7 +30,8 @@ library(stacks)
 ```
 
 ```{r, eval=TRUE}
-mimiciv_icu_cohort <- readRDS("mimic_icu_cohort.rds") |>
+mimiciv_icu_cohort <- 
+  readRDS("../hw4/mimiciv_shiny/mimic_icu_cohort.rds") |>
   select(subject_id, hadm_id, stay_id, first_careunit, gender, race, 
          marital_status, age_intime, bicarbonate, chloride, creatinine, 
          glucose, potassium, sodium, hematocrit, wbc, heart_rate, 
@@ -75,8 +76,7 @@ dim(mimic_test)
 ```
 3. Train and tune the models using the training set.
 
-**Interpretation:** There are missing values in `marital status`, all lab measurements and first vital measurements. Missing proportion is not high but there are some outliers, so we will use simple median imputation for all numerical features and mode 
-imputation for `marital status`. **First we use Logstic Regression and the workflow is as follows:**
+**Interpretation:** There are missing values in `marital_status`, all lab measurements and all first vital measurements. Missing proportion is not high but there are some outliers for two measurements, so we will use simple median imputation for all numerical features and mode imputation for `marital_status`. **First we use Logistic Regression and the workflow is as follows:**
 ```{r, eval=TRUE}
 # set recipe
 logit_recipe <- recipe(los_long ~ ., data = mimic_train) |>
@@ -158,8 +158,7 @@ best_logit
 final_wf_logit <- logit_wf |>
   finalize_workflow(best_logit)
 
-final_fit_logit <- 
-  final_wf_logit |>
+final_fit_logit <- final_wf_logit |> 
   last_fit(data_split)
 
 final_fit_logit |> 
@@ -167,7 +166,7 @@ final_fit_logit |>
 
 
 ```
-**Answer:** When `fold` = 5, the best model has `penalty`, 0.000869749 and `mixture`, 0.5. The best model has a `roc_auc` value of 0.594 and an `accuracy` of 0.572.
+**Answer:** When `fold` = 5, the best model has `penalty` = 0.000869749 and `mixture` = 0.5. The best model has a `roc_auc` value of 0.594 and an `accuracy` of 0.572.
 
 
 **Second we use XGBoost and the workflow is as follows:**
@@ -252,15 +251,14 @@ best_gb
 final_wf_gb <- gb_wf |>
   finalize_workflow(best_gb)
 
-final_fit_gb <- 
-  final_wf_gb |>
+final_fit_gb <- final_wf_gb |> 
   last_fit(data_split)
 
 final_fit_gb |> 
   collect_metrics()
 
 ```
-**Answer:** When `fold` = 5, the best model has `learning rate`, 0.0658 and `tree depth`, 4. The best model has a `roc_auc` value of 0.636 and an `accuracy` of 0.597.
+**Answer:** When `fold` = 5, the best model has `learning rate` = 0.0658 and `tree depth` = 4. The best model has a `roc_auc` value of 0.636 and an `accuracy` of 0.597.
 
 
 
@@ -347,18 +345,16 @@ best_mlp
 final_wf_mlp <- mlp_wf |>
   finalize_workflow(best_mlp)
 
-final_fit_mlp <- 
-  final_wf_mlp |>
+final_fit_mlp <- final_wf_mlp |> 
   last_fit(data_split)
 
 final_fit_mlp |> 
   collect_metrics()
 
 ```
-**Answer:** When `fold` = 2 and `epochs` = 30, the best model has `hidden_units`, 10 and `dropout`, 0. The best model has a `roc_auc` value of 0.614 and an `accuracy` of 0.582.
+**Answer:** When `fold` = 2 and `epochs` = 30, the best model has `hidden_units` = 10 and `dropout` = 0.125. The best model has a `roc_auc` value of 0.614 and an `accuracy` of 0.582.
 
 4. Compare model classification performance on the test set. Report both the area under ROC curve and accuracy for each machine learning algorithm and the model stacking. Interpret the results. What are the most important features in predicting long ICU stays? How do the models compare in terms of performance and interpretability?
-
 ```{r, eval=TRUE}
 set.seed(203)
 folds <- vfold_cv(mimic_train, v = 2)
@@ -438,7 +434,7 @@ autoplot(mimic_model_st)
 autoplot(mimic_model_st, type = "weights")
 
 ```
-**Answer:** The stacked model includes `XGBoost` and `MLP` as the best models. From the weight plot, we can see the top three all come from `XGBoost` and the first one has the weight 1.487, which is almost three times the second one. The best penalty is 0.001. It is surprising that the `Logistic Regression` model is not included in the stacked model. This may be because the `Logistic Regression` model is not as good as the other two models in terms of `roc_auc` and `accuracy`. And the hyperparameters for the `Logistic Regression` model are not tuned so much and the model is not as complex as the other two models. 
+**Answer:** The stacked model includes `XGBoost` and `MLP` as the best model. From the weight plot, we can see the top three all come from `XGBoost` and the first one has the weight 1.487, which is almost three times the second one. The best penalty is 0.001. It is surprising that the `Logistic Regression` model is not included in the stacked model. This may be because the `Logistic Regression` model is not as good as the other two models in terms of `roc_auc` and `accuracy`. And the hyperparameters for the `Logistic Regression` model are not tuned so much and the model is not as complex as the other two models. 
 
 ```{r, eval=TRUE}
 mimic_pred <- mimic_test %>%
@@ -450,20 +446,17 @@ mimic_pred <- mimic_test %>%
 
 ```{r, eval=TRUE}
 final_fit_logit |> 
-  collect_metrics() |>
-  select(.metric, .estimate)
+  collect_metrics()
 
 final_fit_gb |> 
-  collect_metrics() |>
-  select(.metric, .estimate)
+  collect_metrics()
 
 final_fit_mlp |> 
-  collect_metrics() |>
-  select(.metric, .estimate)
+  collect_metrics()
 
 yardstick::accuracy(
-  mimic_pred,
-  truth = los_long,
+  mimic_pred, 
+  truth = los_long, 
   estimate = predicted
   )
 
@@ -481,7 +474,8 @@ yardstick::roc_auc(
 | MLP | 0.582   |      0.614      |
 | Stacked Model  | 0.597  | 0.637 |
 :::
-**Answer:** It seems that stacked model is the best model. It has the highest `ROC_AUC` value of 0.637 and `accuracy` of 0.597. `ROC_AUC` is 0.001 higher than that for the `XGBoost` model. The `Logistic Regression` model has the lowest `ROC_AUC` value of 0.594 and `accuracy` of 0.572. The `XGBoost` model has the highest `ROC_AUC` value of 0.636 and `accuracy` of 0.597. The `MLP` model has a `ROC_AUC` value of 0.614 and `accuracy` of 0.582. It is reasonable that the results of the stacked model is close to but a little higher than the `XGBoost` because the stacked model includes the `XGBoost`, the top three results all come from `XGBoost`, and the `XGBoost` model has the highest `ROC_AUC` value and `accuracy` among the three models.
+
+**Answer:** It seems that stacked model is the best model. It has the highest `ROC_AUC` value of 0.637 and `accuracy` of 0.597. `ROC_AUC` is 0.001 higher than that for the `XGBoost` model. The `Logistic Regression` model has the lowest `ROC_AUC` value of 0.594 and `accuracy` of 0.572. The `XGBoost` model has the second highest `ROC_AUC` value of 0.636 and `accuracy` of 0.597. The `MLP` model has a `ROC_AUC` value of 0.614 and `accuracy` of 0.582. It is reasonable that the results of the stacked model is close to but a little higher than the `XGBoost` because the stacked model includes the `XGBoost`, the top three weight results all come from `XGBoost`, and the `XGBoost` model has the highest `ROC_AUC` value and `accuracy` among the three models.
 ```{r, eval=TRUE}
 # feature importance
 
@@ -494,10 +488,9 @@ final_fit_gb |>
   vip()
 
 ```
-**Answer:** The most important features in predicting long ICU stays are `hematocrit`, `age_intime`, `wbc`, `heart_rate`, and `respiratory_rate` in `Logistic Regression` and `XGBoost` models. `Logistic Regression` also considers two categories in `first_careunit` are important features, i.e., `Medical Intensive Care Unit (MICU)` and `Medical/Surgical Intensive Care Unit (MICU/SICU)` and they are the top two important features. It seems to be reasonable because the patients in these two units usually have more severe conditions and are more likely to have long ICU stays. It is surprising that `XGBoost` does not include any categorical variables as important features and it additionally includes `temperature_fahrenheit` as the most important feature. This may be because from `Logistic Regression` importance plot we know there is no `temperature_fahrenheit` in top 10 important features but two `first_careunit` categories are important features. Perhaps `temperature_fahrenheit` is highly correlated with the two `first_careunit` categories and then `XGBoost` shows `temperature_fahrenheit` as a replacement for the two `first_careunit` categories. For `MLP` model, it is hard to interpret the feature importance because it is a black box model. Model-specific variable importance scores are currently not available for this type of model. For stacked model, it is also hard to interpret the feature importance perhaps because it includes `MLP`.
+**Answer:** The most important features in predicting long ICU stays are `hematocrit`, `age_intime`, `wbc`, `heart_rate`, and `respiratory_rate` in `Logistic Regression` and `XGBoost` models. `Logistic Regression` also considers two categories in `first_careunit` are important features, i.e., `Medical Intensive Care Unit (MICU)` and `Medical/Surgical Intensive Care Unit (MICU/SICU)` and they are the top two important features. It seems to be reasonable because the patients in these two units usually have more severe conditions and are more likely to have long ICU stays. It is surprising that `XGBoost` does not include any categorical variables as important features and it additionally includes `temperature_fahrenheit` as the most important feature. This may be because from `Logistic Regression` importance plot we know there is no `temperature_fahrenheit` in top 10 important features but two `first_careunit` categories are important features. Perhaps `temperature_fahrenheit` is highly correlated with the two `first_careunit` categories and then `XGBoost` shows `temperature_fahrenheit` as a replacement for the two `first_careunit` categories. For `MLP` model, it is hard to interpret the feature importance because it is a black box model. From `RStudio`, it shows model-specific variable importance scores are currently not available for this type of model. For stacked model, it is also hard to interpret the feature importance perhaps because it includes `MLP`.
 
-There seems to be a tradeoff between performance and interpretability. The `Logistic Regression` model is the most interpretable model because it is a generalized linear model and we can interpret the coefficients of the features. However, it has the lowest `ROC_AUC` value and `accuracy`. The `XGBoost` model has the highest `ROC_AUC` value and `accuracy` but it is not as interpretable as the `Logistic Regression` model. The `MLP` model is the least interpretable model because it is a black box model and 
-it has complex non-linear structures. So it is extremely hard or practically impossible to interpret. The stacked model has the highest `ROC_AUC` value and `accuracy` and it is not as interpretable as the `Logistic Regression` model but it is more interpretable than the `MLP` model. This increased interpretability may be due to its ensemble nature, which combines the `XGBoost` and `MLP` models in a weighted manner. The combination of the `XGBoost` and `MLP` models also contributes to the highest `ROC_AUC` value and `accuracy` of the stacked model among the four models. 
+There seems to be a tradeoff between performance and interpretability. The `Logistic Regression` model is the most interpretable model because it is a generalized linear model and we can interpret the coefficients of the features. However, it has the lowest `ROC_AUC` value and `accuracy`. The `XGBoost` model has the highest `ROC_AUC` value and `accuracy` but it is not as interpretable as the `Logistic Regression` model. The `MLP` model is the least interpretable model because it is a black box model and it has complex non-linear structures. So it is extremely hard or practically impossible to interpret. The stacked model has the highest `ROC_AUC` value and `accuracy` and it is not as interpretable as the `Logistic Regression` model but it is more interpretable than the `MLP` model. This increased interpretability may be due to its ensemble nature, which combines the `XGBoost` and `MLP` models in a weighted manner. The combination of the `XGBoost` and `MLP` models also contributes to the highest `ROC_AUC` value and `accuracy` of the stacked model among the four models. 
 
 
 

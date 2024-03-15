@@ -352,7 +352,7 @@ final_fit_mlp |>
   collect_metrics()
 
 ```
-**Answer:** When `fold` = 2 and `epochs` = 30, the best model has `hidden_units` = 10 and `dropout` = 0.125. The best model has a `roc_auc` value of 0.614 and an `accuracy` of 0.582.
+**Answer:** When `fold` = 2 and `epochs` = 30, the best model has `hidden_units` = 10 and `dropout` = 0. The best model has a `roc_auc` value of 0.616 and an `accuracy` of 0.585.
 
 4. Compare model classification performance on the test set. Report both the area under ROC curve and accuracy for each machine learning algorithm and the model stacking. Interpret the results. What are the most important features in predicting long ICU stays? How do the models compare in terms of performance and interpretability?
 ```{r, eval=TRUE}
@@ -434,7 +434,7 @@ autoplot(mimic_model_st)
 autoplot(mimic_model_st, type = "weights")
 
 ```
-**Answer:** The stacked model includes `XGBoost` and `MLP` as the best model. From the weight plot, we can see the top three all come from `XGBoost` and the first one has the weight 1.487, which is almost three times the second one. The best penalty is 0.001. It is surprising that the `Logistic Regression` model is not included in the stacked model. This may be because the `Logistic Regression` model is not as good as the other two models in terms of `roc_auc` and `accuracy`. And the hyperparameters for the `Logistic Regression` model are not tuned so much and the model is not as complex as the other two models. 
+**Answer:** The stacked model includes `XGBoost` and `MLP` as the best model. From the weight plot, we can see the top three all come from `XGBoost` and the first one has the weight which is almost three times the second one. The best penalty is shown in the title of the weight plot. It is surprising that the `Logistic Regression` model is not included in the stacked model. This may be because the `Logistic Regression` model is not as good as the other two models in terms of `roc_auc` and `accuracy`. And the hyperparameters for the `Logistic Regression` model are not tuned so much and the model is not as complex as the other two models. 
 
 ```{r, eval=TRUE}
 mimic_pred <- mimic_test %>%
@@ -471,11 +471,11 @@ yardstick::roc_auc(
 |-----------|----------|----------------|
 | Logistic Regression     | 0.572 | 0.594 |
 | XGBoost|  0.597   |   0.636   |
-| MLP | 0.582   |      0.614      |
-| Stacked Model  | 0.597  | 0.637 |
+| MLP | 0.585   |      0.616      |
+| Stacked Model  | 0.598  | 0.637 |
 :::
 
-**Answer:** It seems that stacked model is the best model. It has the highest `ROC_AUC` value of 0.637 and `accuracy` of 0.597. `ROC_AUC` is 0.001 higher than that for the `XGBoost` model. The `Logistic Regression` model has the lowest `ROC_AUC` value of 0.594 and `accuracy` of 0.572. The `XGBoost` model has the second highest `ROC_AUC` value of 0.636 and `accuracy` of 0.597. The `MLP` model has a `ROC_AUC` value of 0.614 and `accuracy` of 0.582. It is reasonable that the results of the stacked model is close to but a little higher than the `XGBoost` because the stacked model includes the `XGBoost`, the top three weight results all come from `XGBoost`, and the `XGBoost` model has the highest `ROC_AUC` value and `accuracy` among the three models.
+**Answer:** It seems that stacked model is the best model. It has the highest `ROC_AUC` value of 0.637 and `accuracy` of 0.598. Both are 0.001 higher than those for the `XGBoost` model. The `Logistic Regression` model has the lowest `ROC_AUC` value of 0.594 and `accuracy` of 0.572. The `XGBoost` model has the second highest `ROC_AUC` value of 0.636 and `accuracy` of 0.597. The `MLP` model has a `ROC_AUC` value of 0.616 and `accuracy` of 0.585. It is reasonable that the results of the stacked model is close to but a little higher than the `XGBoost` because the stacked model includes the `XGBoost`, the top three weight results all come from `XGBoost`, and the `XGBoost` model has the highest `ROC_AUC` value and `accuracy` among the three models.
 ```{r, eval=TRUE}
 # feature importance
 
